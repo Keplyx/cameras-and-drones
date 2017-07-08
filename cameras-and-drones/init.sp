@@ -26,15 +26,17 @@ public void CreateConVars(char[] version)
 
 public void RegisterCommands()
 {
-	//RegAdminCmd("cd_buy", SetOP, ADMFLAG_GENERIC, "Set a specified player to the Chicken OP");
+	RegConsoleCmd("cd_buy", BuyGear, "Buy team gear");
+	RegConsoleCmd("cd_cam", OpenCamera, "Open cameras");
 }
 
 public void IntiCvars()
 {
-
+	//Enable hiding of players
+	SetConVarBool(FindConVar("sv_disable_immunity_alpha"), true);
 }
 
 public void ResetCvars()
 {
-
+	ResetConVar(FindConVar("sv_disable_immunity_alpha"));
 }
