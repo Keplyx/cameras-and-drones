@@ -170,24 +170,47 @@ public Action StartTouchGrenade(int entity1, int entity2)
 		char modelName[PLATFORM_MAX_PATH];
 		GetEntPropString(entity1, Prop_Data, "m_ModelName", modelName, sizeof(modelName));
 		RemoveEdict(entity1);
-		CreateCamera(owner, pos, rot, modelName);
-		//CreateCamera(owner, pos, rot, "models/props/cs_assault/camera.mdl")
+		
+		if (GetClientTeam(owner) == cvar_camteam.IntValue)
+			CreateCamera(owner, pos, rot, modelName);
 	}
 }
 
 public Action BuyGear(int client_index, int args) //Set player skin if authorized
 {
-	GivePlayerItem(client_index, "weapon_tagrenade");
-	PrintHintText(client_index, "You just bought a camera");
+	if (GetClientTeam(client_index) == cvar_camteam.IntValue)
+		BuyCamera(client_index);
+	
 	return Plugin_Handled;
 }
 
-public Action OpenCamera(int client_index, int args) //Set player skin if authorized
+public void BuyCamera(int client_index)
+{
+	int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
+	if (cvar_camprice.IntValue > money)
+	{
+		PrintHintText(client_index, "<font color='#ff0000' size='30'>Not enough money</font>");
+		return;
+	}
+	SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_camprice.IntValue);
+	GivePlayerItem(client_index, "weapon_tagrenade");
+	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a camera</font>");
+}
+
+public Action OpenGear(int client_index, int args) //Set player skin if authorized
+{
+	if (GetClientTeam(client_index) == cvar_camteam.IntValue)
+		OpenCamera(client_index);
+	
+	return Plugin_Handled;
+}
+
+public void OpenCamera(int client_index)
 {
 	if (camerasList.Length == 0)
 	{
 		PrintHintText(client_index, "No cameras available");
-		return Plugin_Handled;
+		return;
 	}
 	int owner;
 	int target = -1;
@@ -208,8 +231,9 @@ public Action OpenCamera(int client_index, int args) //Set player skin if author
 	
 	Menu_Cameras(client_index, camerasList.FindValue(target));
 	TpToCam(client_index, target);
-	return Plugin_Handled;
 }
+
+
 
 public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
 {
