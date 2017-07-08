@@ -17,6 +17,7 @@
 */
 
 #include <sourcemod>
+#include <csgocolors>
 
 #pragma newdecls required;
 
@@ -71,4 +72,13 @@ public void OnConfigsExecuted()
 public void OnClientPostAdminCheck(int client_index)
 {
 	
+}
+
+stock bool IsValidClient(int client)
+{
+	if (client <= 0 || client > MaxClients || !IsClientConnected(client))
+	{
+		return false;
+	}
+	return IsClientInGame(client);
 }
