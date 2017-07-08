@@ -21,6 +21,7 @@
 
 #include "cameras-and-drones/cameramanager.sp"
 
+int activeCam[MAXPLAYERS + 1];
 
 public void Menu_Cameras(int client_index, int args)
 {
@@ -34,13 +35,14 @@ public void Menu_Cameras(int client_index, int args)
 		
 		if (args == i)
 		{
-			Format(name, sizeof(name), "Active: Camera %i (%s)", i, ownerName);
+			Format(name, sizeof(name), "Active: %s", ownerName);
 			Format(num, sizeof(num), "%i", -1);
-			menu.AddItem(num, name, ITEMDRAW_DISABLED); 
+			menu.AddItem(num, name, ITEMDRAW_DISABLED);
+			activeCam[client_index] = camerasList.Get(i);
 		}
 		else
 		{
-			Format(name, sizeof(name), "Camera %i (%s)", i, ownerName);
+			Format(name, sizeof(name), "%s", ownerName);
 			Format(num, sizeof(num), "%i", i);
 			menu.AddItem(num, name); 
 		}
@@ -63,7 +65,10 @@ public int MenuHandler_Cameras(Menu menu, MenuAction action, int param1, int par
 	else if (action == MenuAction_Cancel)
 	{
 		if (params == MenuCancel_Exit)
+		{
+			activeCam[param1] = -1;
 			ExitCam(param1);
+		}
 	}
 	else if (action == MenuAction_End)
 		delete menu;

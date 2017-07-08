@@ -236,10 +236,18 @@ public void SetViewModel(int client_index, bool enabled)
 	SetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects", EntEffects);
 }
 
-public Action Hook_SetTransmit(int entity, int client) 
-{ 
-    if (client != entity && IsValidClient(entity) && isClientInCam[entity]) 
-        return Plugin_Handled; 
-     
-    return Plugin_Continue; 
-}  
+public Action Hook_SetTransmit(int entity, int client)
+{
+	if (client != entity && IsValidClient(entity) && isClientInCam[entity])
+		return Plugin_Handled;
+	
+	return Plugin_Continue;
+}
+
+public Action Hook_SetTransmitCamera(int entity, int client)
+{
+	if (IsValidClient(client) && activeCam[client] == entity)
+		return Plugin_Handled;
+	
+	return Plugin_Continue;
+}

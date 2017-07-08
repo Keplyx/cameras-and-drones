@@ -37,6 +37,8 @@ public void CreateCamera(int client_index, float pos[3], float rot[3], char mode
 		
 		DispatchSpawn(cam);
 		ActivateEntity(cam);
+		
+		SDKHook(cam, SDKHook_SetTransmit, Hook_SetTransmitCamera);
 		camerasList.Push(cam);
 	}
 }
