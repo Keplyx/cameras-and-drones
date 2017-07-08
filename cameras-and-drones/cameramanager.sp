@@ -21,28 +21,40 @@
 
 
 ArrayList camerasList;
+ArrayList OwnersList;
 int activeCam[MAXPLAYERS + 1];
 int fakePlayersList[MAXPLAYERS + 1];
 
 int collisionOffsets;
 int oldCollisionValue[MAXPLAYERS + 1];
 
+public void AddCamera(int cam, int client_index)
+{
+	camerasList.Push(cam);
+	OwnersList.Push(client_index);
+}
+
+public void RemoveCamera(int cam)
+{
+	int i = camerasList.FindValue(cam);
+	if (i < 0)
+		return;
+	camerasList.Erase(i);
+	OwnersList.Erase(i);
+}
+
 public void CreateCamera(int client_index, float pos[3], float rot[3], char modelName[PLATFORM_MAX_PATH])
 {
-	int cam = CreateEntityByName("prop_dynamic_override");
+	int cam = CreateEntityByName("prop_dynamic_override"); // replace by tagrenade_projectile when using it (makes a flash)
 	if (IsValidEntity(cam)) {
 		SetEntityModel(cam, modelName);
-		
-		SetEntPropEnt(cam, Prop_Send, "m_hOwnerEntity", client_index);
-		TeleportEntity(cam, pos, rot, NULL_VECTOR);
-		//DispatchKeyValue(cam, "Solid", "6");
-		
+		DispatchKeyValue(cam, "solid", "6");
 		DispatchSpawn(cam);
-		ActivateEntity(cam);
+		TeleportEntity(cam, pos, rot, NULL_VECTOR);
 		
 		SDKHook(cam, SDKHook_OnTakeDamage, Hook_TakeDamageCam);
 		SDKHook(cam, SDKHook_SetTransmit, Hook_SetTransmitCamera);
-		camerasList.Push(cam);
+		AddCamera(cam, client_index);
 	}
 }
 
@@ -110,7 +122,7 @@ public void ExitCam(int client_index)
 
 public Action Hook_TakeDamageCam(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	camerasList.Erase(camerasList.FindValue(victim));
+	RemoveCamera(victim);
 	RemoveEdict(victim);
 	
 	for (int i = 1; i <= MAXPLAYERS; i++)

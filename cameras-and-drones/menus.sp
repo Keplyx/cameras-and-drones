@@ -30,7 +30,7 @@ public void Menu_Cameras(int client_index, int args)
 	char name[64], ownerName[64], num[8];
 	for (int i = 0; i < camerasList.Length; i++)
 	{
-		int owner = GetEntPropEnt(camerasList.Get(i), Prop_Send, "m_hOwnerEntity");
+		int owner = OwnersList.Get(i);
 		GetClientName(owner, ownerName, sizeof(ownerName));
 		
 		if (args == i)

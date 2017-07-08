@@ -80,6 +80,11 @@ public void OnPluginStart()
 		ServerCommand("mp_restartgame 1");
 }
 
+public void OnMapStart()
+{
+	//PrecacheModel("models/props/cs_assault/camera.mdl", true);
+}
+
 public void OnConfigsExecuted()
 {
 	IntiCvars();
@@ -99,6 +104,7 @@ public void OnClientDisconnect(int client_index)
 public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
 {
 	camerasList = new ArrayList();
+	OwnersList = new ArrayList();
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
 		activeCam[i] = -1;
@@ -165,6 +171,7 @@ public Action StartTouchGrenade(int entity1, int entity2)
 		GetEntPropString(entity1, Prop_Data, "m_ModelName", modelName, sizeof(modelName));
 		RemoveEdict(entity1);
 		CreateCamera(owner, pos, rot, modelName);
+		//CreateCamera(owner, pos, rot, "models/props/cs_assault/camera.mdl")
 	}
 }
 
