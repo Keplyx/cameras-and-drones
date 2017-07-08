@@ -24,6 +24,9 @@ ArrayList camerasList;
 bool isClientInCam[MAXPLAYERS + 1];
 int fakePlayersList[MAXPLAYERS + 1];
 
+int collisionOffsets;
+int oldCollisionValue[MAXPLAYERS + 1];
+
 public void CreateCamera(int client_index, float pos[3], float rot[3], char modelName[PLATFORM_MAX_PATH])
 {
 	int cam = CreateEntityByName("prop_dynamic_override");
@@ -49,6 +52,7 @@ public void TpToCam(int client_index, int cam)
 	isClientInCam[client_index] = true;
 	if (fakePlayersList[client_index] < 1)
 		CreateFakePlayer(client_index);
+	
 	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
 	//SetEntityRenderMode(client_index, RENDER_NONE);
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 0.0);
@@ -60,6 +64,8 @@ public void TpToCam(int client_index, int cam)
 	GetClientEyePosition(client_index, eyePos);
 	pos[2] -= eyePos[2] - absPos[2];
 	TeleportEntity(client_index, pos, NULL_VECTOR, NULL_VECTOR);
+	oldCollisionValue[client_index] = GetEntData(client_index, collisionOffsets, 1);
+	SetEntData(client_index, collisionOffsets, 2, 1, true);
 }
 
 public void CreateFakePlayer(int client_index)
@@ -75,12 +81,13 @@ public void CreateFakePlayer(int client_index)
 		GetEntPropVector(client_index, Prop_Send, "m_vecOrigin", pos);
 		GetEntPropVector(client_index, Prop_Send, "m_angRotation", rot);
 		TeleportEntity(fakePlayersList[client_index], pos, rot, NULL_VECTOR);
-		
+		DispatchKeyValue(fakePlayersList[client_index], "Solid", "6");
 		DispatchSpawn(fakePlayersList[client_index]);
 		ActivateEntity(fakePlayersList[client_index]);
 		
-		// Set animation
 		
+		SDKHook(fakePlayersList[client_index], SDKHook_OnTakeDamage, Hook_TakeDamage);
+		// Set animation
 	}
 }
 
@@ -96,7 +103,62 @@ public void ExitCam(int client_index)
 	GetEntPropVector(fakePlayersList[client_index], Prop_Send, "m_vecOrigin", pos);
 	GetEntPropVector(fakePlayersList[client_index], Prop_Send, "m_angRotation", rot);
 	TeleportEntity(client_index, pos, rot, NULL_VECTOR);
+	SetEntData(client_index, collisionOffsets, oldCollisionValue[client_index], 1, true);
 	
 	RemoveEdict(fakePlayersList[client_index]);
 	fakePlayersList[client_index] = -1;
+}
+
+
+public Action Hook_TakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+	int owner = GetEntPropEnt(victim, Prop_Send, "m_hOwnerEntity");
+	char weapon[64];
+	GetClientWeapon(attacker, weapon, sizeof(weapon))
+	removeHealth(owner, damage, attacker, damagetype, weapon);
+}
+
+void removeHealth(int client_index, float damage, int attacker, int damagetype, char[] weapon)
+{
+	
+	int health = GetClientHealth(client_index);
+	int dmg = RoundToNearest(damage);
+	if (health > dmg)
+		SetEntityHealth(client_index, health - dmg);
+	else
+	{
+		ExitCam(client_index);
+		SetEntityHealth(client_index, 1);// Make sure he dies from the dealdamage
+		DealDamage(client_index, dmg, attacker, damagetype, weapon);
+	}
+}
+
+void DealDamage(int victim, int damage, int attacker = 0, int dmgType = DMG_GENERIC, char[] weapon)
+{
+	if(victim > 0 && IsValidEdict(victim) && IsClientInGame(victim) && IsPlayerAlive(victim) && damage > 0)
+	{
+		char c_dmg[16];
+		IntToString(damage, c_dmg, sizeof(c_dmg));
+		char c_dmgType[32];
+		IntToString(dmgType, c_dmgType, sizeof(c_dmgType));
+		char c_victim[16];
+		IntToString(victim, c_victim, sizeof(c_victim));
+		int pointHurt = CreateEntityByName("point_hurt");
+		if(IsValidEntity(pointHurt))
+		{
+			DispatchKeyValue(victim, "targetname", c_victim);
+			DispatchKeyValue(pointHurt, "DamageTarget", c_victim);
+			DispatchKeyValue(pointHurt, "Damage", c_dmg);
+			DispatchKeyValue(pointHurt, "DamageType", c_dmgType);
+			if(!StrEqual(weapon,""))
+			{
+				DispatchKeyValue(pointHurt, "classname", weapon);
+			}
+			DispatchSpawn(pointHurt);
+			AcceptEntityInput(pointHurt, "Hurt", (attacker > 0) ? attacker : -1);
+			DispatchKeyValue(pointHurt, "classname", "point_hurt");
+			DispatchKeyValue(victim, "targetname", "donthurtme");
+			RemoveEdict(pointHurt);
+		}
+	}
 }

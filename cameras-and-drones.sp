@@ -40,8 +40,6 @@
 
 bool lateload;
 
-
-
 int clientsViewmodels[MAXPLAYERS + 1];
 
 
@@ -69,6 +67,8 @@ public void OnPluginStart()
 	
 	CreateConVars(VERSION);
 	RegisterCommands();
+	
+	collisionOffsets = FindSendPropInfo("CBaseEntity", "m_CollisionGroup");
 	
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -205,14 +205,15 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 	
 	if (isClientInCam[client_index])
 	{
-		if (buttons & IN_DUCK)
-		{
-			buttons &= ~IN_DUCK;
-			return Plugin_Continue;
-		}
 		//Disable knife cuts
 		float fUnlockTime = GetGameTime() + 1.0;
 		SetEntPropFloat(client_index, Prop_Send, "m_flNextAttack", fUnlockTime);
+		
+		if (buttons & IN_DUCK)
+		{
+			buttons &= ~IN_DUCK;
+			
+		}
 	}
 	return Plugin_Changed;
 }
