@@ -207,9 +207,14 @@ public Action OpenGear(int client_index, int args) //Set player skin if authoriz
 
 public void OpenCamera(int client_index)
 {
+	if (!(GetEntityFlags(client_index) & FL_ONGROUND))
+	{
+		PrintHintText(client_index, "<font color='#ff0000' size='25'>Cannot use cameras while jumping</font>");
+		return;
+	}
 	if (camerasList.Length == 0)
 	{
-		PrintHintText(client_index, "No cameras available");
+		PrintHintText(client_index, "<font color='#ff0000' size='30'>No cameras available</font>");
 		return;
 	}
 	int owner;
