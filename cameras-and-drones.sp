@@ -42,6 +42,7 @@ bool lateload;
 
 int clientsViewmodels[MAXPLAYERS + 1];
 
+char gearWeapon[] = "weapon_tagrenade";
 
 public Plugin myinfo =
 {
@@ -193,7 +194,7 @@ public void BuyCamera(int client_index)
 		return;
 	}
 	SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_camprice.IntValue);
-	GivePlayerItem(client_index, "weapon_tagrenade");
+	GivePlayerItem(client_index, gearWeapon);
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a camera</font>");
 }
 
@@ -245,6 +246,14 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 	if (!IsPlayerAlive(client_index))
 		return Plugin_Continue;
 	
+	if (buttons & IN_USE)
+	{
+		int target = GetClientAimTarget(client_index, false);
+		int i = camerasList.FindValue(target);
+		if (i != -1 && OwnersList.Get(i) == client_index)
+			PickupGear(client_index, i);
+	}
+	
 	if (activeCam[client_index] != -1)
 	{
 		//Disable knife cuts
@@ -258,6 +267,19 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 		}
 	}
 	return Plugin_Changed;
+}
+
+public void PickupGear(int client_index, int i)
+{
+	if (GetClientTeam(client_index) == cvar_camteam.IntValue)
+		PickupCamera(client_index, camerasList.Get(i));
+}
+
+public void PickupCamera(int client_index, int cam)
+{
+	DestroyCamera(cam);
+	GivePlayerItem(client_index, gearWeapon);
+	PrintHintText(client_index, "<font color='#0fff00' size='25'>Camera recovered</font>");
 }
 
 stock bool IsValidClient(int client)
@@ -294,7 +316,6 @@ public Action Hook_SetTransmitCamera(int entity, int client)
 	
 	return Plugin_Continue;
 }
-
 
 public void CloseCamera(int client_index)
 {

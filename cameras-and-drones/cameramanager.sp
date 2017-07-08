@@ -34,7 +34,7 @@ public void AddCamera(int cam, int client_index)
 	OwnersList.Push(client_index);
 }
 
-public void RemoveCamera(int cam)
+public void RemoveCameraFromList(int cam)
 {
 	int i = camerasList.FindValue(cam);
 	if (i < 0)
@@ -119,19 +119,23 @@ public void ExitCam(int client_index)
 	fakePlayersList[client_index] = -1;
 }
 
-
-public Action Hook_TakeDamageCam(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+public void DestroyCamera(int cam)
 {
-	RemoveCamera(victim);
-	RemoveEdict(victim);
+	RemoveCameraFromList(cam);
+	RemoveEdict(cam);
 	
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
-		if (activeCam[i] == victim)
+		if (activeCam[i] == cam)
 		{
 			CloseCamera(i);
 		}
 	}
+}
+
+public Action Hook_TakeDamageCam(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+	DestroyCamera(victim);
 }
 
 public Action Hook_TakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
