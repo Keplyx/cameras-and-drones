@@ -21,12 +21,12 @@
 
 #include "cameras-and-drones/cameramanager.sp"
 
-int activeCam[MAXPLAYERS + 1];
+Menu playerMenus[MAXPLAYERS + 1];
 
 public void Menu_Cameras(int client_index, int args)
 {
-	Menu menu = new Menu(MenuHandler_Cameras);
-	menu.SetTitle("Available cameras");
+	playerMenus[client_index] = new Menu(MenuHandler_Cameras);
+	playerMenus[client_index].SetTitle("Available cameras");
 	char name[64], ownerName[64], num[8];
 	for (int i = 0; i < camerasList.Length; i++)
 	{
@@ -37,18 +37,18 @@ public void Menu_Cameras(int client_index, int args)
 		{
 			Format(name, sizeof(name), "Active: %s", ownerName);
 			Format(num, sizeof(num), "%i", -1);
-			menu.AddItem(num, name, ITEMDRAW_DISABLED);
+			playerMenus[client_index].AddItem(num, name, ITEMDRAW_DISABLED);
 			activeCam[client_index] = camerasList.Get(i);
 		}
 		else
 		{
 			Format(name, sizeof(name), "%s", ownerName);
 			Format(num, sizeof(num), "%i", i);
-			menu.AddItem(num, name); 
+			playerMenus[client_index].AddItem(num, name); 
 		}
 	}
-	menu.ExitButton = true;
-	menu.Display(client_index, MENU_TIME_FOREVER);
+	playerMenus[client_index].ExitButton = true;
+	playerMenus[client_index].Display(client_index, MENU_TIME_FOREVER);
 }
 
 

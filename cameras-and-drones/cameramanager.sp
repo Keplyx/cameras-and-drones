@@ -21,7 +21,7 @@
 
 
 ArrayList camerasList;
-bool isClientInCam[MAXPLAYERS + 1];
+int activeCam[MAXPLAYERS + 1];
 int fakePlayersList[MAXPLAYERS + 1];
 
 int collisionOffsets;
@@ -35,12 +35,12 @@ public void CreateCamera(int client_index, float pos[3], float rot[3], char mode
 		
 		SetEntPropEnt(cam, Prop_Send, "m_hOwnerEntity", client_index);
 		TeleportEntity(cam, pos, rot, NULL_VECTOR);
-		// Disable collisions
-		DispatchKeyValue(cam, "solid", "0");
+		//DispatchKeyValue(cam, "Solid", "6");
 		
 		DispatchSpawn(cam);
 		ActivateEntity(cam);
 		
+		SDKHook(cam, SDKHook_OnTakeDamage, Hook_TakeDamageCam);
 		SDKHook(cam, SDKHook_SetTransmit, Hook_SetTransmitCamera);
 		camerasList.Push(cam);
 	}
@@ -49,7 +49,6 @@ public void CreateCamera(int client_index, float pos[3], float rot[3], char mode
 
 public void TpToCam(int client_index, int cam)
 {
-	isClientInCam[client_index] = true;
 	if (fakePlayersList[client_index] < 1)
 		CreateFakePlayer(client_index);
 	
@@ -93,7 +92,6 @@ public void CreateFakePlayer(int client_index)
 
 public void ExitCam(int client_index)
 {
-	isClientInCam[client_index] = false;
 	SetViewModel(client_index, true);
 	SetEntityMoveType(client_index, MOVETYPE_WALK);
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 1.0);
@@ -109,6 +107,20 @@ public void ExitCam(int client_index)
 	fakePlayersList[client_index] = -1;
 }
 
+
+public Action Hook_TakeDamageCam(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+	camerasList.Erase(camerasList.FindValue(victim));
+	RemoveEdict(victim);
+	
+	for (int i = 1; i <= MAXPLAYERS; i++)
+	{
+		if (activeCam[i] == victim)
+		{
+			CloseCamera(i);
+		}
+	}
+}
 
 public Action Hook_TakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
@@ -127,7 +139,7 @@ void removeHealth(int client_index, float damage, int attacker, int damagetype, 
 		SetEntityHealth(client_index, health - dmg);
 	else
 	{
-		ExitCam(client_index);
+		CloseCamera(client_index);
 		SetEntityHealth(client_index, 1);// Make sure he dies from the dealdamage
 		DealDamage(client_index, dmg, attacker, damagetype, weapon);
 	}

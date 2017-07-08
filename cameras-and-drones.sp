@@ -90,12 +90,18 @@ public void OnClientPostAdminCheck(int client_index)
 	SDKHook(client_index, SDKHook_PostThinkPost, Hook_OnPostThinkPost);
 }
 
+public void OnClientDisconnect(int client_index)
+{
+	if (activeCam[client_index] != -1)
+		CloseCamera(client_index);
+}
+
 public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
 {
 	camerasList = new ArrayList();
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
-		isClientInCam[i] = false;
+		activeCam[i] = -1;
 		fakePlayersList[i] = -1;
 	}
 }
@@ -112,7 +118,7 @@ public Action NormalSoundHook(int clients[64], int &numClients, char sample[PLAT
 
 public void Hook_OnPostThinkPost(int entity_index)
 {
-	if (IsValidClient(entity_index) && isClientInCam[entity_index])
+	if (IsValidClient(entity_index) && activeCam[entity_index] != -1)
 	{
 		SetViewModel(entity_index, false);
 	}
@@ -203,7 +209,7 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 	if (!IsPlayerAlive(client_index))
 		return Plugin_Continue;
 	
-	if (isClientInCam[client_index])
+	if (activeCam[client_index] != -1)
 	{
 		//Disable knife cuts
 		float fUnlockTime = GetGameTime() + 1.0;
@@ -239,7 +245,7 @@ public void SetViewModel(int client_index, bool enabled)
 
 public Action Hook_SetTransmit(int entity, int client)
 {
-	if (client != entity && IsValidClient(entity) && isClientInCam[entity])
+	if (client != entity && IsValidClient(entity) && activeCam[entity] != -1)
 		return Plugin_Handled;
 	
 	return Plugin_Continue;
@@ -251,4 +257,15 @@ public Action Hook_SetTransmitCamera(int entity, int client)
 		return Plugin_Handled;
 	
 	return Plugin_Continue;
+}
+
+
+public void CloseCamera(int client_index)
+{
+	activeCam[client_index] = -1;
+	ExitCam(client_index);
+	if (playerMenus[client_index] != null)
+	{
+		delete playerMenus[client_index];
+	}
 }
