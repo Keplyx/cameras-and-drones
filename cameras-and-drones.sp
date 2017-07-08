@@ -26,6 +26,7 @@
 
 #pragma newdecls required;
 
+#include "cameras-and-drones/menus.sp"
 #include "cameras-and-drones/init.sp"
 
 
@@ -39,8 +40,7 @@
 
 bool lateload;
 
-ArrayList camerasList;
-bool isClientInCam[MAXPLAYERS + 1];
+
 
 int clientsViewmodels[MAXPLAYERS + 1];
 
@@ -96,6 +96,7 @@ public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
 		isClientInCam[i] = false;
+		fakePlayersList[i] = -1;
 	}
 }
 
@@ -111,9 +112,9 @@ public Action NormalSoundHook(int clients[64], int &numClients, char sample[PLAT
 
 public void Hook_OnPostThinkPost(int entity_index)
 {
-	if (IsValidClient(entity_index))
+	if (IsValidClient(entity_index) && isClientInCam[entity_index])
 	{
-		SetViewModel(entity_index, !isClientInCam[entity_index]);
+		SetViewModel(entity_index, false);
 	}
 }
 
@@ -150,8 +151,7 @@ public Action StartTouchGrenade(int entity1, int entity2)
 {
 	if (IsValidEdict(entity1))
 	{
-		float pos[3];
-		float rot[3];
+		float pos[3], rot[3];
 		GetEntPropVector(entity1, Prop_Send, "m_vecOrigin", pos);
 		GetEntPropVector(entity1, Prop_Send, "m_angRotation", rot);
 		int owner = GetEntPropEnt(entity1, Prop_Send, "m_hOwnerEntity");
@@ -159,23 +159,6 @@ public Action StartTouchGrenade(int entity1, int entity2)
 		GetEntPropString(entity1, Prop_Data, "m_ModelName", modelName, sizeof(modelName));
 		RemoveEdict(entity1);
 		CreateCamera(owner, pos, rot, modelName);
-	}
-}
-
-void CreateCamera(int client_index, float pos[3], float rot[3], char modelName[PLATFORM_MAX_PATH])
-{
-	int cam = CreateEntityByName("prop_dynamic_override");
-	if (IsValidEntity(cam)) {
-		SetEntityModel(cam, modelName);
-		
-		SetEntPropEnt(cam, Prop_Send, "m_hOwnerEntity", client_index);
-		TeleportEntity(cam, pos, rot, NULL_VECTOR);
-		// Disable collisions
-		DispatchKeyValue(cam, "solid", "0");
-		
-		DispatchSpawn(cam);
-		ActivateEntity(cam);
-		camerasList.Push(cam);
 	}
 }
 
@@ -210,28 +193,9 @@ public Action OpenCamera(int client_index, int args) //Set player skin if author
 	if (target == -1)
 		target = camerasList.Get(0);
 	
-	isClientInCam[client_index] = true;
-	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
-	//SetEntityRenderMode(client_index, RENDER_NONE);
-	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 0.0);
-	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmit);
-	float pos[3], absPos[3], eyePos[3];
-	GetEntPropVector(target, Prop_Send, "m_vecOrigin", pos);
-	GetClientAbsOrigin(client_index, absPos);
-	GetClientEyePosition(client_index, eyePos);
-	pos[2] -= eyePos[2] - absPos[2];
-	TeleportEntity(client_index, pos, NULL_VECTOR, NULL_VECTOR);
+	Menu_Cameras(client_index, camerasList.FindValue(target));
+	TpToCam(client_index, target);
 	return Plugin_Handled;
-}
-
-public void SetViewModel(int client_index, bool enabled)
-{
-	int EntEffects = GetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects");
-	if (enabled)
-		EntEffects |= ~32;
-	else
-		EntEffects |= 32; // Set to Nodraw
-	SetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects", EntEffects);
 }
 
 public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
@@ -260,6 +224,16 @@ stock bool IsValidClient(int client)
 		return false;
 	}
 	return IsClientInGame(client);
+}
+
+public void SetViewModel(int client_index, bool enabled)
+{
+	int EntEffects = GetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects");
+	if (enabled)
+		EntEffects |= ~32;
+	else
+		EntEffects |= 32; // Set to Nodraw
+	SetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects", EntEffects);
 }
 
 public Action Hook_SetTransmit(int entity, int client) 
