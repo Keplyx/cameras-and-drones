@@ -38,7 +38,7 @@ public void Menu_Cameras(int client_index, int args)
 			Format(name, sizeof(name), "Active: %s", ownerName);
 			Format(num, sizeof(num), "%i", -1);
 			playerMenus[client_index].AddItem(num, name, ITEMDRAW_DISABLED);
-			activeCam[client_index] = camerasList.Get(i);
+			activeCam[client_index][0] = camerasList.Get(i);
 		}
 		else
 		{
@@ -59,14 +59,15 @@ public int MenuHandler_Cameras(Menu menu, MenuAction action, int param1, int par
 		char infoBuffer[64];
 		menu.GetItem(params, infoBuffer, sizeof(infoBuffer));
 		int cam = StringToInt(infoBuffer, 10);
-		TpToCam(param1, camerasList.Get(cam));
+		if (cam < camerasList.Length)
+			TpToCam(param1, camerasList.Get(cam));
 		Menu_Cameras(param1, cam);
 	}
 	else if (action == MenuAction_Cancel)
 	{
 		if (params == MenuCancel_Exit)
 		{
-			activeCam[param1] = -1;
+			activeCam[param1][0] = -1;
 			ExitCam(param1);
 		}
 	}

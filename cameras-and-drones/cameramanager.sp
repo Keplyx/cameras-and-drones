@@ -22,7 +22,7 @@
 
 ArrayList camerasList;
 ArrayList OwnersList;
-int activeCam[MAXPLAYERS + 1];
+int activeCam[MAXPLAYERS + 1][2];
 int fakePlayersList[MAXPLAYERS + 1];
 
 int collisionOffsets;
@@ -58,6 +58,40 @@ public void CreateCamera(int client_index, float pos[3], float rot[3], char mode
 	}
 }
 
+public void CreateFlash(int client_index, int cam)
+{
+	int flash = CreateEntityByName("tagrenade_projectile");
+	if (IsValidEntity(flash)) {
+		activeCam[client_index][1] = flash;
+		char modelName[PLATFORM_MAX_PATH];
+		GetEntPropString(cam, Prop_Data, "m_ModelName", modelName, sizeof(modelName));
+		SetEntityModel(flash, modelName);
+		DispatchKeyValue(flash, "solid", "0");
+		
+		DispatchSpawn(flash);
+		ActivateEntity(flash);
+		
+		SetEntityMoveType(flash, MOVETYPE_NONE);
+		
+		float pos[3], rot[3];
+		GetEntPropVector(cam, Prop_Send, "m_vecOrigin", pos);
+		GetEntPropVector(cam, Prop_Send, "m_angRotation", rot);
+		
+		TeleportEntity(flash, pos, rot, NULL_VECTOR);
+		
+		//SDKHook(flash, SDKHook_SetTransmit, Hook_SetTransmitCamera);
+	}
+}
+
+public void DestroyFlash(int client_index)
+{
+	if (IsValidEntity(activeCam[client_index][1]))
+	{
+		RemoveEdict(activeCam[client_index][1])
+		activeCam[client_index][1] = -1;
+	}
+}
+
 
 public void TpToCam(int client_index, int cam)
 {
@@ -77,6 +111,9 @@ public void TpToCam(int client_index, int cam)
 	TeleportEntity(client_index, pos, NULL_VECTOR, NULL_VECTOR);
 	oldCollisionValue[client_index] = GetEntData(client_index, collisionOffsets, 1);
 	SetEntData(client_index, collisionOffsets, 2, 1, true);
+	
+	DestroyFlash(client_index);
+	CreateFlash(client_index, cam);
 }
 
 public void CreateFakePlayer(int client_index)
@@ -117,6 +154,7 @@ public void ExitCam(int client_index)
 	
 	RemoveEdict(fakePlayersList[client_index]);
 	fakePlayersList[client_index] = -1;
+	DestroyFlash(client_index);
 }
 
 public void DestroyCamera(int cam)
@@ -126,9 +164,10 @@ public void DestroyCamera(int cam)
 	
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
-		if (activeCam[i] == cam)
+		if (activeCam[i][0] == cam)
 		{
 			CloseCamera(i);
+			DestroyFlash(i);
 		}
 	}
 }

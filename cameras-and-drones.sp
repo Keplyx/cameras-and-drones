@@ -98,7 +98,7 @@ public void OnClientPostAdminCheck(int client_index)
 
 public void OnClientDisconnect(int client_index)
 {
-	if (activeCam[client_index] != -1)
+	if (activeCam[client_index][0] != -1)
 		CloseCamera(client_index);
 }
 
@@ -108,7 +108,8 @@ public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast
 	OwnersList = new ArrayList();
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
-		activeCam[i] = -1;
+		activeCam[i][0] = -1;
+		activeCam[i][1] = -1;
 		fakePlayersList[i] = -1;
 	}
 }
@@ -125,7 +126,7 @@ public Action NormalSoundHook(int clients[64], int &numClients, char sample[PLAT
 
 public void Hook_OnPostThinkPost(int entity_index)
 {
-	if (IsValidClient(entity_index) && activeCam[entity_index] != -1)
+	if (IsValidClient(entity_index) && activeCam[entity_index][0] != -1)
 	{
 		SetViewModel(entity_index, false);
 	}
@@ -156,9 +157,22 @@ public void OnEntityCreated(int entity_index, const char[] classname)
 {
 	if (StrEqual(classname, "tagrenade_projectile", false))
 	{
-		SDKHook(entity_index, SDKHook_StartTouch, StartTouchGrenade);
+		SDKHook(entity_index, SDKHook_Spawn, OnEntitySpawned);
 	}
 }
+
+public void OnEntitySpawned (int entity_index)
+{
+	// DO not hook flash
+	for (int i = 1; i <= MAXPLAYERS; i++)
+	{
+		if (activeCam[i][1] == entity_index)
+			return;
+	}
+	SDKHook(entity_index, SDKHook_StartTouch, StartTouchGrenade);
+}  
+
+
 
 public Action StartTouchGrenade(int entity1, int entity2)
 {
@@ -254,7 +268,7 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			PickupGear(client_index, i);
 	}
 	
-	if (activeCam[client_index] != -1)
+	if (activeCam[client_index][0] != -1)
 	{
 		//Disable knife cuts
 		float fUnlockTime = GetGameTime() + 1.0;
@@ -303,7 +317,7 @@ public void SetViewModel(int client_index, bool enabled)
 
 public Action Hook_SetTransmit(int entity, int client)
 {
-	if (client != entity && IsValidClient(entity) && activeCam[entity] != -1)
+	if (client != entity && IsValidClient(entity) && activeCam[entity][0] != -1)
 		return Plugin_Handled;
 	
 	return Plugin_Continue;
@@ -311,7 +325,7 @@ public Action Hook_SetTransmit(int entity, int client)
 
 public Action Hook_SetTransmitCamera(int entity, int client)
 {
-	if (IsValidClient(client) && activeCam[client] == entity)
+	if (IsValidClient(client) && activeCam[client][0] == entity)
 		return Plugin_Handled;
 	
 	return Plugin_Continue;
@@ -319,8 +333,8 @@ public Action Hook_SetTransmitCamera(int entity, int client)
 
 public void CloseCamera(int client_index)
 {
-	activeCam[client_index] = -1;
 	ExitCam(client_index);
+	activeCam[client_index][0] = -1;
 	if (playerMenus[client_index] != null)
 	{
 		delete playerMenus[client_index];
