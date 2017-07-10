@@ -371,8 +371,11 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			vel[0] = 0.0;
 			vel[1] = 0.0;
 			vel[2] = 0.0;
+			isDroneMoving[client_index] = true;
 			MoveDrone(client_index, activeDrone[client_index][0]);
 		}
+		else
+			isDroneMoving[client_index] = false;
 		if ((buttons & IN_BACK) || (buttons & IN_MOVELEFT) || (buttons & IN_MOVERIGHT))
 		{
 			vel[0] = 0.0;
@@ -461,8 +464,6 @@ public void CloseCamera(int client_index)
 public void CloseDrone(int client_index)
 {
 	ExitDrone(client_index);
-	activeDrone[client_index][0] = -1;
-	activeDrone[client_index][1] = -1;
 }
 
 void RemoveHealth(int client_index, float damage, int attacker, int damagetype, char[] weapon)

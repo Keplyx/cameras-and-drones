@@ -30,8 +30,15 @@ int fakePlayersListDrones[MAXPLAYERS + 1];
 
 int oldCollisionValueD[MAXPLAYERS + 1];
 
+float droneEyePosOffset = 5.0;
 float droneHoverHeight = 10.0;
 float droneSpeed = 150.0;
+
+bool isDroneGrounded[MAXPLAYERS + 1];
+bool isDroneMoving[MAXPLAYERS + 1];
+bool isDroneStable[MAXPLAYERS + 1];
+bool startedMovement[MAXPLAYERS + 1];
+
 public void AddDrone(int drone, int model, int client_index)
 {
 	dronesList.Push(drone);
@@ -51,17 +58,14 @@ public void RemoveDroneFromList(int drone)
 
 public void MoveDrone(int client_index, int drone)
 {
-	float groundDistance = DistanceToGround(drone)
-	if (groundDistance > droneHoverHeight)
-		return;
-	float vel[3], ang[3], dronePos[3];
-	GetEntPropVector(client_index, Prop_Send, "m_angRotation", ang);
-	GetAngleVectors(ang, vel, NULL_VECTOR, NULL_VECTOR);
-	ScaleVector(vel, droneSpeed);
-	ang[1] -= 90;
-	GetEntPropVector(drone, Prop_Send, "m_vecOrigin", dronePos);
-	dronePos[2] += droneHoverHeight - groundDistance;
-	TeleportEntity(drone, dronePos, ang, vel);
+	if (isDroneGrounded[client_index])
+	{
+		float vel[3], rot[3];
+		GetClientAbsAngles(client_index, rot);
+		GetAngleVectors(rot, vel, NULL_VECTOR, NULL_VECTOR);
+		ScaleVector(vel, droneSpeed);
+		TeleportEntity(drone, NULL_VECTOR, NULL_VECTOR, vel);
+	}
 }
 
 
@@ -77,8 +81,8 @@ public void CreateDrone(int client_index, float pos[3], float rot[3], char model
 		TeleportEntity(drone, pos, rot, NULL_VECTOR);
 		
 		SDKHook(drone, SDKHook_OnTakeDamage, Hook_TakeDamageDrone);
-		SetEntityRenderMode(drone, RENDER_NONE);
-		SDKHook(client_index, SDKHook_PostThinkPost, Hook_PostThinkPostDrone);
+		//SetEntityRenderMode(drone, RENDER_NONE);
+		SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
 		
 		CreateDroneModel(client_index, drone);
 	}
@@ -98,26 +102,59 @@ public void CreateDroneModel(int client_index, int drone)
 		
 		float pos[3], rot[3];
 		TeleportEntity(model, pos, rot, NULL_VECTOR);
-		SDKHook(model, SDKHook_SetTransmit, Hook_SetTransmitGear);
+		//DKHook(model, SDKHook_SetTransmit, Hook_SetTransmitGear);
 		
 		AddDrone(drone, model, client_index);
 	}
 }
 
-public void Hook_PostThinkPostDrone(int client_index)
+public void Hook_PostThinkDrone(int client_index)
 {
 	if (activeDrone[client_index][0] < 0)
 		return
 	
-	int drone = dronesList.Get(dronesOwnerList.FindValue(client_index));
-	float dronePos[3], absPos[3], eyePos[3], ang[3];
-	GetEntPropVector(client_index, Prop_Send, "m_angRotation", ang);
-	GetEntPropVector(drone, Prop_Send, "m_vecOrigin", dronePos);
-	GetClientAbsOrigin(client_index, absPos)
-	GetClientEyePosition(client_index, eyePos);
+	LowerDroneView(client_index);
 	
-	dronePos[2] -= eyePos[2] - absPos[2] - 10.0;
-	TeleportEntity(client_index, dronePos, NULL_VECTOR, NULL_VECTOR);
+	int drone = dronesList.Get(dronesOwnerList.FindValue(client_index));
+	float groundDistance = DistanceToGround(drone);
+	if (groundDistance > (droneHoverHeight + 1.0))
+	{
+		isDroneGrounded[client_index] = false;
+		return;
+	}
+	isDroneGrounded[client_index] = true;
+	if (!isDroneMoving[client_index])
+	{
+		isDroneStable[client_index] = true;
+		startedMovement[client_index] = false;
+		return;
+	}
+	if (!startedMovement[client_index] && isDroneStable[client_index])
+		startedMovement[client_index] = true; // Skips when drone is getting up
+	else
+		startedMovement[client_index] = false;
+	float pos[3], rot[3], nullRot[3];
+	GetEntPropVector(drone, Prop_Send, "m_vecOrigin", pos);
+	pos[2] += droneHoverHeight - groundDistance;
+	GetEntPropVector(drone, Prop_Send, "m_angRotation", rot);
+	bool tempStable = true;
+	for (int i = 0; i < sizeof(rot); i++)
+	{
+		if (rot[i] > 0.5)
+			tempStable = false;
+	}
+	isDroneStable[client_index] = tempStable;
+	if (!isDroneStable[client_index] && !startedMovement[client_index])
+		PrintHintText(client_index, "<font color='#ff0000' size='30'>LOST CONTROL</font><br><font color='#ff0000' size='20'>Stop to recover</font>");
+	
+	TeleportEntity(drone, pos, nullRot, NULL_VECTOR);
+}
+
+public void LowerDroneView(int client_index)
+{
+	float viewPos[3];
+	viewPos[2] = droneEyePosOffset;
+	SetEntPropVector(client_index, Prop_Data, "m_vecViewOffset", viewPos);
 }
 
 public float DistanceToGround(int entity_index)
@@ -161,11 +198,11 @@ public void TpToDrone(int client_index, int drone)
 	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
 	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	
-	float pos[3], absPos[3], eyePos[3];
-	GetClientAbsOrigin(client_index, absPos);
-	GetClientEyePosition(client_index, eyePos);
-	pos[2] -= eyePos[2] - absPos[2];
-	TeleportEntity(client_index, pos, NULL_VECTOR, NULL_VECTOR);
+	SetVariantString("!activator"); AcceptEntityInput(client_index, "SetParent", drone, client_index, 0);
+	SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", drone, activeDrone[client_index][1], 0);
+	float pos[3], rot[3];
+	TeleportEntity(client_index, pos, rot, NULL_VECTOR);
+	TeleportEntity(activeDrone[client_index][1] , pos, rot, NULL_VECTOR);
 	oldCollisionValueD[client_index] = GetEntData(client_index, GetCollOffset(), 1);
 	SetEntData(client_index, GetCollOffset(), 2, 4, true);
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 2);
@@ -181,9 +218,13 @@ public void ExitDrone(int client_index)
 	SetEntityMoveType(client_index, MOVETYPE_WALK);
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 1.0);
 	SDKUnhook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
-	SDKUnhook(client_index, SDKHook_PostThinkPost, Hook_PostThinkPostDrone);
+	SDKUnhook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
 	
+	AcceptEntityInput(client_index, "SetParent");
+	SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", activeDrone[client_index][0], activeDrone[client_index][1], 0);
 	float pos[3], rot[3];
+	TeleportEntity(activeDrone[client_index][1], pos, rot, NULL_VECTOR);
+	
 	GetEntPropVector(fakePlayersListDrones[client_index], Prop_Send, "m_vecOrigin", pos);
 	GetEntPropVector(fakePlayersListDrones[client_index], Prop_Send, "m_angRotation", rot);
 	TeleportEntity(client_index, pos, rot, NULL_VECTOR);
@@ -192,6 +233,8 @@ public void ExitDrone(int client_index)
 	
 	RemoveEdict(fakePlayersListDrones[client_index]);
 	fakePlayersListDrones[client_index] = -1;
+	activeDrone[client_index][0] = -1;
+	activeDrone[client_index][1] = -1;
 }
 
 public void DestroyDrone(int drone)
