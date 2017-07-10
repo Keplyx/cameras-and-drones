@@ -358,10 +358,10 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 		float fUnlockTime = GetGameTime() + 1.0;
 		SetEntPropFloat(client_index, Prop_Send, "m_flNextAttack", fUnlockTime);
 		
-//		if (buttons & IN_DUCK)
-//		{
-//			buttons &= ~IN_DUCK;
-//		}
+		if (buttons & IN_DUCK)
+		{
+			buttons &= ~IN_DUCK;
+		}
 	}
 	
 	if (activeDrone[client_index][0] != -1)
@@ -381,6 +381,11 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			vel[0] = 0.0;
 			vel[1] = 0.0;
 			vel[2] = 0.0;
+		}
+		if (buttons & IN_DUCK)
+		{
+			buttons &= ~IN_DUCK;
+			return Plugin_Changed;
 		}
 	}
 	

@@ -56,19 +56,6 @@ public void RemoveDroneFromList(int drone)
 	dronesOwnerList.Erase(i);
 }
 
-public void MoveDrone(int client_index, int drone)
-{
-	if (isDroneGrounded[client_index])
-	{
-		float vel[3], rot[3];
-		GetClientAbsAngles(client_index, rot);
-		GetAngleVectors(rot, vel, NULL_VECTOR, NULL_VECTOR);
-		ScaleVector(vel, droneSpeed);
-		TeleportEntity(drone, NULL_VECTOR, NULL_VECTOR, vel);
-	}
-}
-
-
 public void CreateDrone(int client_index, float pos[3], float rot[3], char modelName[PLATFORM_MAX_PATH])
 {
 	// Can be moved, must have a larger hitbox than the drone model (no stuck, easier pickup, easier target)
@@ -101,6 +88,7 @@ public void CreateDroneModel(int client_index, int drone)
 		SetVariantString("!activator"); AcceptEntityInput(model, "SetParent", drone, model, 0);
 		
 		float pos[3], rot[3];
+		rot[1] = 90.0; 
 		TeleportEntity(model, pos, rot, NULL_VECTOR);
 		//DKHook(model, SDKHook_SetTransmit, Hook_SetTransmitGear);
 		
@@ -108,21 +96,45 @@ public void CreateDroneModel(int client_index, int drone)
 	}
 }
 
+public void MoveDrone(int client_index, int drone)
+{
+	if (isDroneGrounded[client_index])
+	{
+		float vel[3], rot[3];
+		GetClientAbsAngles(client_index, rot);
+		GetAngleVectors(rot, vel, NULL_VECTOR, NULL_VECTOR);
+		ScaleVector(vel, droneSpeed);
+		TeleportEntity(drone, NULL_VECTOR, NULL_VECTOR, vel);
+	}
+}
+
 public void Hook_PostThinkDrone(int client_index)
 {
 	if (activeDrone[client_index][0] < 0)
 		return
-	
-	LowerDroneView(client_index);
-	
 	int drone = dronesList.Get(dronesOwnerList.FindValue(client_index));
 	float groundDistance = DistanceToGround(drone);
+	
+	LowerDroneView(client_index);
+	DisplayStable(client_index, drone);
+	
 	if (groundDistance > (droneHoverHeight + 1.0))
 	{
 		isDroneGrounded[client_index] = false;
 		return;
 	}
 	isDroneGrounded[client_index] = true;
+	if (!isDroneMoving[client_index])
+		return;
+	
+	float pos[3], nullRot[3];
+	GetEntPropVector(drone, Prop_Send, "m_vecOrigin", pos);
+	pos[2] += droneHoverHeight - groundDistance;
+	TeleportEntity(drone, pos, nullRot, NULL_VECTOR);
+}
+
+public void DisplayStable(int client_index, int drone)
+{
 	if (!isDroneMoving[client_index])
 	{
 		isDroneStable[client_index] = true;
@@ -133,9 +145,7 @@ public void Hook_PostThinkDrone(int client_index)
 		startedMovement[client_index] = true; // Skips when drone is getting up
 	else
 		startedMovement[client_index] = false;
-	float pos[3], rot[3], nullRot[3];
-	GetEntPropVector(drone, Prop_Send, "m_vecOrigin", pos);
-	pos[2] += droneHoverHeight - groundDistance;
+	float rot[3];
 	GetEntPropVector(drone, Prop_Send, "m_angRotation", rot);
 	bool tempStable = true;
 	for (int i = 0; i < sizeof(rot); i++)
@@ -146,8 +156,6 @@ public void Hook_PostThinkDrone(int client_index)
 	isDroneStable[client_index] = tempStable;
 	if (!isDroneStable[client_index] && !startedMovement[client_index])
 		PrintHintText(client_index, "<font color='#ff0000' size='30'>LOST CONTROL</font><br><font color='#ff0000' size='20'>Stop to recover</font>");
-	
-	TeleportEntity(drone, pos, nullRot, NULL_VECTOR);
 }
 
 public void LowerDroneView(int client_index)
@@ -199,9 +207,10 @@ public void TpToDrone(int client_index, int drone)
 	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	
 	SetVariantString("!activator"); AcceptEntityInput(client_index, "SetParent", drone, client_index, 0);
-	SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", drone, activeDrone[client_index][1], 0);
+	SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", client_index, activeDrone[client_index][1], 0);
 	float pos[3], rot[3];
 	TeleportEntity(client_index, pos, rot, NULL_VECTOR);
+	rot[1] = 90.0;
 	TeleportEntity(activeDrone[client_index][1] , pos, rot, NULL_VECTOR);
 	oldCollisionValueD[client_index] = GetEntData(client_index, GetCollOffset(), 1);
 	SetEntData(client_index, GetCollOffset(), 2, 4, true);
@@ -223,6 +232,7 @@ public void ExitDrone(int client_index)
 	AcceptEntityInput(client_index, "SetParent");
 	SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", activeDrone[client_index][0], activeDrone[client_index][1], 0);
 	float pos[3], rot[3];
+	rot[1] = 90.0;
 	TeleportEntity(activeDrone[client_index][1], pos, rot, NULL_VECTOR);
 	
 	GetEntPropVector(fakePlayersListDrones[client_index], Prop_Send, "m_vecOrigin", pos);
