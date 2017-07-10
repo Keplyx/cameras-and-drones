@@ -61,7 +61,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	
+	InitVars();
 	AddNormalSoundHook(NormalSoundHook);
 	HookEvent("round_start", Event_RoundStart);
 	HookEvent("player_spawn", Event_PlayerSpawn);
@@ -83,7 +83,7 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
-	//PrecacheModel("models/props/cs_assault/camera.mdl", true);
+	PrecacheModel(InCamModel, true);
 }
 
 public void OnConfigsExecuted()
@@ -98,11 +98,16 @@ public void OnClientPostAdminCheck(int client_index)
 
 public void OnClientDisconnect(int client_index)
 {
-	if (activeCam[client_index][0] != -1)
+	if (activeCam[client_index][0] > MAXPLAYERS)
 		CloseCamera(client_index);
 }
 
 public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
+{
+	InitVars();
+}
+
+public void InitVars()
 {
 	camerasList = new ArrayList();
 	OwnersList = new ArrayList();
@@ -113,6 +118,7 @@ public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast
 		fakePlayersList[i] = -1;
 	}
 }
+
 
 public Action NormalSoundHook(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags)
 {
@@ -325,7 +331,7 @@ public Action Hook_SetTransmit(int entity, int client)
 
 public Action Hook_SetTransmitCamera(int entity, int client)
 {
-	if (IsValidClient(client) && activeCam[client][0] == entity)
+	if (IsValidClient(client) && (activeCam[client][0] == entity || activeCam[client][1] == entity))
 		return Plugin_Handled;
 	
 	return Plugin_Continue;

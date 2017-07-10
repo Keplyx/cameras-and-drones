@@ -19,6 +19,7 @@
 #include <sdktools>
 #include <sdkhooks>
 
+char InCamModel[] = "models/chicken/festive_egg.mdl";
 
 ArrayList camerasList;
 ArrayList OwnersList;
@@ -60,6 +61,14 @@ public void CreateCamera(int client_index, float pos[3], float rot[3], char mode
 
 public void CreateFlash(int client_index, int cam)
 {
+	for (int i = 1; i <= MAXPLAYERS; i++)
+	{
+		if (activeCam[i][0] == cam && i != client_index)
+		{
+			activeCam[client_index][1] = activeCam[i][1];
+			return; // Prevent from creating multiple red flashes
+		}
+	}
 	int flash = CreateEntityByName("tagrenade_projectile");
 	if (IsValidEntity(flash)) {
 		activeCam[client_index][1] = flash;
@@ -79,7 +88,8 @@ public void CreateFlash(int client_index, int cam)
 		
 		TeleportEntity(flash, pos, rot, NULL_VECTOR);
 		
-		//SDKHook(flash, SDKHook_SetTransmit, Hook_SetTransmitCamera);
+		SDKHook(flash, SDKHook_OnTakeDamage, Hook_TakeDamageCam);
+		SDKHook(flash, SDKHook_SetTransmit, Hook_SetTransmitCamera);
 	}
 }
 
@@ -98,6 +108,7 @@ public void TpToCam(int client_index, int cam)
 	if (fakePlayersList[client_index] < 1)
 		CreateFakePlayer(client_index);
 	
+	SetEntityModel(client_index, InCamModel); // Set to a small model to prevent collisions/shots
 	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
 	//SetEntityRenderMode(client_index, RENDER_NONE);
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 0.0);
@@ -110,7 +121,8 @@ public void TpToCam(int client_index, int cam)
 	pos[2] -= eyePos[2] - absPos[2];
 	TeleportEntity(client_index, pos, NULL_VECTOR, NULL_VECTOR);
 	oldCollisionValue[client_index] = GetEntData(client_index, collisionOffsets, 1);
-	SetEntData(client_index, collisionOffsets, 2, 1, true);
+	SetEntData(client_index, collisionOffsets, 2, 4, true);
+	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 2);
 	
 	DestroyFlash(client_index);
 	CreateFlash(client_index, cam);
@@ -141,6 +153,10 @@ public void CreateFakePlayer(int client_index)
 
 public void ExitCam(int client_index)
 {
+	char modelName[PLATFORM_MAX_PATH];
+	GetEntPropString(fakePlayersList[client_index], Prop_Data, "m_ModelName", modelName, sizeof(modelName));
+	SetEntityModel(client_index, modelName); // Set back to original model
+	
 	SetViewModel(client_index, true);
 	SetEntityMoveType(client_index, MOVETYPE_WALK);
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 1.0);
@@ -151,6 +167,7 @@ public void ExitCam(int client_index)
 	GetEntPropVector(fakePlayersList[client_index], Prop_Send, "m_angRotation", rot);
 	TeleportEntity(client_index, pos, rot, NULL_VECTOR);
 	SetEntData(client_index, collisionOffsets, oldCollisionValue[client_index], 1, true);
+	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 0);
 	
 	RemoveEdict(fakePlayersList[client_index]);
 	fakePlayersList[client_index] = -1;
@@ -159,21 +176,30 @@ public void ExitCam(int client_index)
 
 public void DestroyCamera(int cam)
 {
+	if (IsValidEdict(cam))
+		RemoveEdict(cam);
 	RemoveCameraFromList(cam);
-	RemoveEdict(cam);
 	
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
 		if (activeCam[i][0] == cam)
 		{
 			CloseCamera(i);
-			DestroyFlash(i);
 		}
 	}
 }
 
 public Action Hook_TakeDamageCam(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
+	PrintToServer("Damage!");
+	for (int i = 1; i <= MAXPLAYERS; i++)
+	{
+		if (activeCam[i][0] == victim || activeCam[i][1] == victim)
+		{
+			DestroyCamera(activeCam[i][0]);
+			return;
+		}
+	}
 	DestroyCamera(victim);
 }
 
