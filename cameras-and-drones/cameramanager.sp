@@ -111,7 +111,7 @@ public void TpToCam(int client_index, int cam)
 	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
 	//SetEntityRenderMode(client_index, RENDER_NONE);
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 0.0);
-	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmit);
+	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	
 	float pos[3], absPos[3], eyePos[3];
 	GetEntPropVector(cam, Prop_Send, "m_vecOrigin", pos);
@@ -136,7 +136,7 @@ public void ExitCam(int client_index)
 	SetViewModel(client_index, true);
 	SetEntityMoveType(client_index, MOVETYPE_WALK);
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 1.0);
-	SDKUnhook(client_index, SDKHook_SetTransmit, Hook_SetTransmit);
+	SDKUnhook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	
 	float pos[3], rot[3];
 	GetEntPropVector(fakePlayersListCamera[client_index], Prop_Send, "m_vecOrigin", pos);

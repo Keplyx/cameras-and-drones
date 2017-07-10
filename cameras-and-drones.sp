@@ -91,6 +91,7 @@ public int GetCollOffset()
 public void OnMapStart()
 {
 	PrecacheModel(InCamModel, true);
+	PrecacheModel("models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl", true);
 }
 
 public void OnConfigsExecuted()
@@ -119,6 +120,7 @@ public void InitVars()
 	camerasList = new ArrayList();
 	camOwnersList = new ArrayList();
 	dronesList = new ArrayList();
+	dronesModelList = new ArrayList();
 	dronesOwnerList = new ArrayList();
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
@@ -206,7 +208,7 @@ public Action StartTouchGrenade(int entity1, int entity2)
 		if (GetClientTeam(owner) == cvar_camteam.IntValue)
 			CreateCamera(owner, pos, rot, modelName);
 		else if (GetClientTeam(owner) > 1)
-			CreateDrone(owner, pos, rot, modelName);
+			CreateDrone(owner, pos, rot, "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl");
 	}
 }
 
@@ -258,6 +260,11 @@ public Action OpenGear(int client_index, int args) //Set player skin if authoriz
 
 public void OpenCamera(int client_index)
 {
+	if (activeCam[client_index][0] != -1)
+	{
+		CloseGear(client_index);
+		return;
+	}
 	if (!(GetEntityFlags(client_index) & FL_ONGROUND))
 	{
 		PrintHintText(client_index, "<font color='#ff0000' size='25'>Cannot use cameras while jumping</font>");
@@ -291,6 +298,11 @@ public void OpenCamera(int client_index)
 
 public void OpenDrone(int client_index)
 {
+	if (activeDrone[client_index][0] != -1)
+	{
+		CloseGear(client_index);
+		return;
+	}
 	if (!(GetEntityFlags(client_index) & FL_ONGROUND))
 	{
 		PrintHintText(client_index, "<font color='#ff0000' size='25'>Cannot use drones while jumping</font>");
@@ -346,12 +358,29 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 		float fUnlockTime = GetGameTime() + 1.0;
 		SetEntPropFloat(client_index, Prop_Send, "m_flNextAttack", fUnlockTime);
 		
-		if (buttons & IN_DUCK)
+//		if (buttons & IN_DUCK)
+//		{
+//			buttons &= ~IN_DUCK;
+//		}
+	}
+	
+	if (activeDrone[client_index][0] != -1)
+	{
+		if (buttons & IN_FORWARD)
 		{
-			buttons &= ~IN_DUCK;
-			
+			vel[0] = 0.0;
+			vel[1] = 0.0;
+			vel[2] = 0.0;
+			MoveDrone(client_index, activeDrone[client_index][0]);
+		}
+		if ((buttons & IN_BACK) || (buttons & IN_MOVELEFT) || (buttons & IN_MOVERIGHT))
+		{
+			vel[0] = 0.0;
+			vel[1] = 0.0;
+			vel[2] = 0.0;
 		}
 	}
+	
 	return Plugin_Changed;
 }
 
@@ -396,15 +425,15 @@ public void SetViewModel(int client_index, bool enabled)
 	SetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects", EntEffects);
 }
 
-public Action Hook_SetTransmit(int entity, int client)
+public Action Hook_SetTransmitPlayer(int entity, int client) // hide player only if using cam/drone
 {
-	if (client != entity && IsValidClient(entity) && activeCam[entity][0] != -1)
+	if (client != entity && IsValidClient(entity) && (activeCam[entity][0] != -1 || activeDrone[client][0] != -1))
 		return Plugin_Handled;
 	
 	return Plugin_Continue;
 }
 
-public Action Hook_SetTransmitGear(int entity, int client)
+public Action Hook_SetTransmitGear(int entity, int client) // Hide cam/drone only to the one using it
 {
 	if (IsValidClient(client) && ((activeCam[client][0] == entity || activeCam[client][1] == entity) || (activeDrone[client][0] == entity || activeDrone[client][1] == entity)))
 		return Plugin_Handled;
@@ -433,6 +462,7 @@ public void CloseDrone(int client_index)
 {
 	ExitDrone(client_index);
 	activeDrone[client_index][0] = -1;
+	activeDrone[client_index][1] = -1;
 }
 
 void RemoveHealth(int client_index, float damage, int attacker, int damagetype, char[] weapon)
