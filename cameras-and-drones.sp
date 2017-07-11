@@ -361,6 +361,7 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 		if (buttons & IN_DUCK)
 		{
 			buttons &= ~IN_DUCK;
+			CloseGear(client_index);
 		}
 	}
 	
@@ -374,18 +375,19 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			isDroneMoving[client_index] = true;
 			MoveDrone(client_index, activeDrone[client_index][0]);
 		}
+		else if (buttons & IN_SPEED)
+			isDroneMoving[client_index] = true;
 		else
 			isDroneMoving[client_index] = false;
+		if (buttons & IN_JUMP)
+		{
+			JumpDrone(client_index, activeDrone[client_index][0]);
+		}
 		if ((buttons & IN_BACK) || (buttons & IN_MOVELEFT) || (buttons & IN_MOVERIGHT))
 		{
 			vel[0] = 0.0;
 			vel[1] = 0.0;
 			vel[2] = 0.0;
-		}
-		if (buttons & IN_DUCK)
-		{
-			buttons &= ~IN_DUCK;
-			return Plugin_Changed;
 		}
 	}
 	

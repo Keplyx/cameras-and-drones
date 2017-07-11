@@ -32,7 +32,8 @@ int oldCollisionValueD[MAXPLAYERS + 1];
 
 float droneEyePosOffset = 5.0;
 float droneHoverHeight = 10.0;
-float droneSpeed = 150.0;
+float droneSpeed = 200.0;
+float droneJumpForce = 300.0;
 
 bool isDroneGrounded[MAXPLAYERS + 1];
 bool isDroneMoving[MAXPLAYERS + 1];
@@ -105,6 +106,20 @@ public void MoveDrone(int client_index, int drone)
 		rot[0] = 0.0;
 		GetAngleVectors(rot, vel, NULL_VECTOR, NULL_VECTOR);
 		ScaleVector(vel, droneSpeed);
+		TeleportEntity(drone, NULL_VECTOR, NULL_VECTOR, vel);
+	}
+}
+
+public void JumpDrone(int client_index, int drone)
+{
+	if (isDroneGrounded[client_index])
+	{
+		float vel[3], rot[3];
+		GetClientEyeAngles(client_index, rot);
+		if (rot[0] > -45.0)
+			rot[0] = -45.0;
+		GetAngleVectors(rot, vel, NULL_VECTOR, NULL_VECTOR);
+		ScaleVector(vel, droneJumpForce);
 		TeleportEntity(drone, NULL_VECTOR, NULL_VECTOR, vel);
 	}
 }
