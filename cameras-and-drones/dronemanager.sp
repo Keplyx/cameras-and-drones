@@ -70,7 +70,6 @@ public void CreateDrone(int client_index, float pos[3], float rot[3], char model
 		
 		SDKHook(drone, SDKHook_OnTakeDamage, Hook_TakeDamageDrone);
 		//SetEntityRenderMode(drone, RENDER_NONE);
-		SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
 		
 		CreateDroneModel(client_index, drone);
 	}
@@ -221,6 +220,7 @@ public void TpToDrone(int client_index, int drone)
 	SetEntityModel(client_index, InDroneModel); // Set to a small model to prevent collisions/shots
 	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
 	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
+	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
 	
 	SetVariantString("!activator"); AcceptEntityInput(client_index, "SetParent", drone, client_index, 0);
 	SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", client_index, activeDrone[client_index][1], 0);
