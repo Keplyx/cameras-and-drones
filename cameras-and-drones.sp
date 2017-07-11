@@ -390,7 +390,7 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			vel[1] = 0.0;
 			vel[2] = 0.0;
 			isDroneMoving[client_index] = true;
-			MoveDrone(client_index, activeDrone[client_index][0]);
+			MoveDrone(client_index);
 		}
 		else if (buttons & IN_SPEED)
 			isDroneMoving[client_index] = true;
@@ -398,7 +398,7 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			isDroneMoving[client_index] = false;
 		if (buttons & IN_JUMP)
 		{
-			JumpDrone(client_index, activeDrone[client_index][0]);
+			JumpDrone(client_index);
 		}
 		if ((buttons & IN_BACK) || (buttons & IN_MOVELEFT) || (buttons & IN_MOVERIGHT))
 		{
