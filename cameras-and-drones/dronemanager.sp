@@ -101,7 +101,8 @@ public void MoveDrone(int client_index, int drone)
 	if (isDroneGrounded[client_index])
 	{
 		float vel[3], rot[3];
-		GetClientAbsAngles(client_index, rot);
+		GetClientEyeAngles(client_index, rot);
+		rot[0] = 0.0;
 		GetAngleVectors(rot, vel, NULL_VECTOR, NULL_VECTOR);
 		ScaleVector(vel, droneSpeed);
 		TeleportEntity(drone, NULL_VECTOR, NULL_VECTOR, vel);
