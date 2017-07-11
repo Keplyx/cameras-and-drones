@@ -39,12 +39,16 @@
 #define VERSION "0.1.0"
 #define PLUGIN_NAME "Cameras and Drones",
 
+#define HIDEHUD_WEAPONSELECTION ( 1<<0 ) // Hide ammo count & weapon selection
+
 bool lateload;
 
 int clientsViewmodels[MAXPLAYERS + 1];
 
 char gearWeapon[] = "weapon_tagrenade";
 int collisionOffsets;
+
+int boughtGear[MAXPLAYERS + 1];
 
 public Plugin myinfo =
 {
@@ -101,7 +105,7 @@ public void OnConfigsExecuted()
 
 public void OnClientPostAdminCheck(int client_index)
 {
-	SDKHook(client_index, SDKHook_PostThinkPost, Hook_OnPostThinkPost);
+	// Nothing yet
 }
 
 public void OnClientDisconnect(int client_index)
@@ -130,6 +134,7 @@ public void InitVars()
 		activeDrone[i][1] = -1;
 		fakePlayersListCamera[i] = -1;
 		fakePlayersListDrones[i] = -1;
+		boughtGear[i] = 0;
 	}
 }
 
@@ -141,14 +146,6 @@ public Action NormalSoundHook(int clients[64], int &numClients, char sample[PLAT
 			return Plugin_Stop;
 	}
 	return Plugin_Continue;
-}
-
-public void Hook_OnPostThinkPost(int entity_index)
-{
-	if (IsValidClient(entity_index) && (activeCam[entity_index][0] != -1 || activeDrone[entity_index][0] != -1))
-	{
-		SetViewModel(entity_index, false);
-	}
 }
 
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
@@ -178,6 +175,14 @@ public void OnEntityCreated(int entity_index, const char[] classname)
 	{
 		SDKHook(entity_index, SDKHook_Spawn, OnEntitySpawned);
 	}
+	if (StrEqual(classname, "weapon_tagrenade", false))
+	{
+		char modelName[PLATFORM_MAX_PATH];
+		GetEntPropString(entity_index, Prop_Data, "m_ModelName", modelName, sizeof(modelName));
+		if (StrEqual(modelName, "models/weapons/w_eq_sensorgrenade_dropped.mdl", false)) 
+			RemoveEdict(entity_index);
+	}
+	
 }
 
 public void OnEntitySpawned (int entity_index)
@@ -224,6 +229,11 @@ public Action BuyGear(int client_index, int args) //Set player skin if authorize
 
 public void BuyCamera(int client_index)
 {
+	if (boughtGear[client_index] >= 1)
+	{
+		PrintHintText(client_index, "<font color='#ff0000' size='30'>You already bought a camera</font>");
+		return;
+	}
 	int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
 	if (cvar_camprice.IntValue > money)
 	{
@@ -233,10 +243,16 @@ public void BuyCamera(int client_index)
 	SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_camprice.IntValue);
 	GivePlayerItem(client_index, gearWeapon);
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a camera</font>");
+	boughtGear[client_index]++;
 }
 
 public void BuyDrone(int client_index)
 {
+	if (boughtGear[client_index] >= 1)
+	{
+		PrintHintText(client_index, "<font color='#ff0000' size='30'>You already bought a drone</font>");
+		return;
+	}
 	int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
 	if (cvar_droneprice.IntValue > money)
 	{
@@ -246,6 +262,7 @@ public void BuyDrone(int client_index)
 	SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_droneprice.IntValue);
 	GivePlayerItem(client_index, gearWeapon);
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a drone</font>");
+	boughtGear[client_index]++;
 }
 
 public Action OpenGear(int client_index, int args) //Set player skin if authorized
@@ -546,11 +563,16 @@ public void CreateFakePlayer(int client_index, bool isCam)
 		
 		SDKHook(fake, SDKHook_OnTakeDamage, Hook_TakeDamageFakePlayer);
 		
-		//SetVariantString("crouch_idle_lower"); AcceptEntityInput(fakePlayersListD[client_index], "SetAnimation"); // Can't find sequence ?!
+		//SetVariantString("ACT_IDLE"); AcceptEntityInput(fake, "SetAnimation"); // Can't find sequence ?!
 		
 		if (isCam)
 			fakePlayersListCamera[client_index] = fake;
 		else
 			fakePlayersListDrones[client_index] = fake;
 	}
+}
+
+public void HideHudGuns(int client_index)
+{
+	SetEntProp(client_index, Prop_Send, "m_iHideHUD", HIDEHUD_WEAPONSELECTION);
 }

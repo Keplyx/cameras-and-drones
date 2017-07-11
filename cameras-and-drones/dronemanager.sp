@@ -69,7 +69,7 @@ public void CreateDrone(int client_index, float pos[3], float rot[3], char model
 		TeleportEntity(drone, pos, rot, NULL_VECTOR);
 		
 		SDKHook(drone, SDKHook_OnTakeDamage, Hook_TakeDamageDrone);
-		//SetEntityRenderMode(drone, RENDER_NONE);
+		SetEntityRenderMode(drone, RENDER_NONE);
 		
 		CreateDroneModel(client_index, drone);
 	}
@@ -88,9 +88,8 @@ public void CreateDroneModel(int client_index, int drone)
 		SetVariantString("!activator"); AcceptEntityInput(model, "SetParent", drone, model, 0);
 		
 		float pos[3], rot[3];
-		rot[1] = 90.0; 
 		TeleportEntity(model, pos, rot, NULL_VECTOR);
-		//DKHook(model, SDKHook_SetTransmit, Hook_SetTransmitGear);
+		SDKHook(model, SDKHook_SetTransmit, Hook_SetTransmitGear);
 		
 		AddDrone(drone, model, client_index);
 	}
@@ -132,6 +131,8 @@ public void Hook_PostThinkDrone(int client_index)
 	
 	LowerDroneView(client_index);
 	DisplayStable(client_index, drone);
+	HideHudGuns(client_index);
+	SetViewModel(client_index, false);
 	
 	if (groundDistance > (droneHoverHeight + 1.0))
 	{
@@ -248,7 +249,6 @@ public void ExitDrone(int client_index)
 	AcceptEntityInput(client_index, "SetParent");
 	SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", activeDrone[client_index][0], activeDrone[client_index][1], 0);
 	float pos[3], rot[3];
-	rot[1] = 90.0;
 	TeleportEntity(activeDrone[client_index][1], pos, rot, NULL_VECTOR);
 	
 	GetEntPropVector(fakePlayersListDrones[client_index], Prop_Send, "m_vecOrigin", pos);

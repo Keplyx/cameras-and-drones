@@ -101,6 +101,14 @@ public void DestroyFlash(int client_index)
 	}
 }
 
+public void Hook_PostThinkCam(int client_index)
+{
+	if (activeCam[client_index][0] < 0)
+		return
+	
+	HideHudGuns(client_index);
+	SetViewModel(client_index, false);
+}
 
 public void TpToCam(int client_index, int cam)
 {
@@ -112,6 +120,7 @@ public void TpToCam(int client_index, int cam)
 	//SetEntityRenderMode(client_index, RENDER_NONE);
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 0.0);
 	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
+	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkCam);
 	
 	float pos[3], absPos[3], eyePos[3];
 	GetEntPropVector(cam, Prop_Send, "m_vecOrigin", pos);
@@ -137,6 +146,7 @@ public void ExitCam(int client_index)
 	SetEntityMoveType(client_index, MOVETYPE_WALK);
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 1.0);
 	SDKUnhook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
+	SDKUnhook(client_index, SDKHook_PostThink, Hook_PostThinkCam);
 	
 	float pos[3], rot[3];
 	GetEntPropVector(fakePlayersListCamera[client_index], Prop_Send, "m_vecOrigin", pos);
