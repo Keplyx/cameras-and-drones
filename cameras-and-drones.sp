@@ -393,10 +393,23 @@ public bool CanThrowDrone(int client_index)
 
 public void PickupGear(int client_index, int i)
 {
+	float pos[3], gearPos[3];
+	GetClientEyePosition(client_index, pos);
+	
 	if (GetClientTeam(client_index) == cvar_camteam.IntValue)
-		PickupCamera(client_index, camerasList.Get(i));
+	{
+		int cam = camerasList.Get(i);
+		GetEntPropVector(cam, Prop_Send, "m_vecOrigin", gearPos);
+		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue)
+			PickupCamera(client_index, cam);
+	}
 	else if (GetClientTeam(client_index) > 1)
-		PickupDrone(client_index, dronesList.Get(i));
+	{
+		int drone = dronesList.Get(i);
+		GetEntPropVector(drone, Prop_Send, "m_vecOrigin", gearPos);
+		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue)
+			PickupDrone(client_index, drone);
+	}
 }
 
 public void PickupCamera(int client_index, int cam)
