@@ -71,6 +71,7 @@ public void OnPluginStart()
 	AddNormalSoundHook(NormalSoundHook);
 	HookEvent("round_start", Event_RoundStart);
 	HookEvent("player_spawn", Event_PlayerSpawn);
+	AddCommandListener(CommandDrop, "drop"); 
 	
 	CreateConVars(VERSION);
 	RegisterCommands();
@@ -380,6 +381,10 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			buttons &= ~IN_DUCK;
 			CloseGear(client_index);
 		}
+		if (buttons & IN_USE)
+		{
+			buttons &= ~IN_USE;
+		}
 	}
 	
 	if (activeDrone[client_index][0] != -1)
@@ -575,4 +580,16 @@ public void CreateFakePlayer(int client_index, bool isCam)
 public void HideHudGuns(int client_index)
 {
 	SetEntProp(client_index, Prop_Send, "m_iHideHUD", HIDEHUD_WEAPONSELECTION);
+}
+
+public Action Hook_WeaponCanUse(int client_index, int weapon_index)  
+{
+	return Plugin_Handled;
+}
+
+public Action CommandDrop(int client_index, const char[] command, int argc)
+{
+	if (activeCam[client_index][0] != -1 || activeDrone[client_index][0] != -1)
+		return Plugin_Handled;
+	return Plugin_Continue;
 }

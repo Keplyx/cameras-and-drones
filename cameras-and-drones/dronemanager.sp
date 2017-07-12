@@ -183,7 +183,7 @@ public bool TraceFilterIgnorePlayers(int entity_index, int mask, any data)
 		return false;
 	}
 	return true;
-}
+} 
 
 public void TpToDrone(int client_index, int drone)
 {
@@ -196,6 +196,7 @@ public void TpToDrone(int client_index, int drone)
 	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
 	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
+	SDKHook(client_index, SDKHook_WeaponCanUse, Hook_WeaponCanUse);
 	
 	SetVariantString("!activator"); AcceptEntityInput(client_index, "SetParent", drone, client_index, 0);
 	SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", client_index, activeDrone[client_index][1], 0);
@@ -219,6 +220,7 @@ public void ExitDrone(int client_index)
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 1.0);
 	SDKUnhook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKUnhook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
+	SDKUnhook(client_index, SDKHook_WeaponCanUse, Hook_WeaponCanUse);
 	
 	AcceptEntityInput(client_index, "SetParent");
 	SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", activeDrone[client_index][0], activeDrone[client_index][1], 0);
