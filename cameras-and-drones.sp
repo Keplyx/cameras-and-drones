@@ -386,6 +386,17 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			buttons &= ~IN_USE;
 		}
 	}
+	else if (buttons & IN_ATTACK) // Stop player from throwing the gear too far
+	{
+		int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
+		char weapon_name[64];
+		GetEntityClassname(weapon_index, weapon_name, sizeof(weapon_name))
+		if (StrEqual(weapon_name, gearWeapon, false))
+		{
+			buttons &= ~IN_ATTACK;
+			buttons |= IN_ATTACK2;
+		}
+	}
 	
 	if (activeDrone[client_index][0] != -1)
 	{
