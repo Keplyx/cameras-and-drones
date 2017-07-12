@@ -115,6 +115,8 @@ public void TpToCam(int client_index, int cam)
 	if (fakePlayersListCamera[client_index] < 1)
 		CreateFakePlayer(client_index, true);
 	
+	SetGearScreen(client_index, true);
+	
 	SetEntityModel(client_index, InCamModel); // Set to a small model to prevent collisions/shots
 	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
 	//SetEntityRenderMode(client_index, RENDER_NONE);
@@ -138,6 +140,8 @@ public void TpToCam(int client_index, int cam)
 
 public void ExitCam(int client_index)
 {
+	SetGearScreen(client_index, false);
+	
 	char modelName[PLATFORM_MAX_PATH];
 	GetEntPropString(fakePlayersListCamera[client_index], Prop_Data, "m_ModelName", modelName, sizeof(modelName));
 	SetEntityModel(client_index, modelName); // Set back to original model

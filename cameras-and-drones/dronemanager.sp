@@ -190,6 +190,8 @@ public void TpToDrone(int client_index, int drone)
 	if (fakePlayersListDrones[client_index] < 1)
 		CreateFakePlayer(client_index, false);
 	
+	SetGearScreen(client_index, true);
+	
 	activeDrone[client_index][0] = drone;
 	activeDrone[client_index][1] = dronesModelList.Get(dronesList.FindValue(drone));
 	SetEntityModel(client_index, InDroneModel); // Set to a small model to prevent collisions/shots
@@ -210,6 +212,8 @@ public void TpToDrone(int client_index, int drone)
 
 public void ExitDrone(int client_index)
 {
+	SetGearScreen(client_index, false);
+	
 	char modelName[PLATFORM_MAX_PATH];
 	GetEntPropString(fakePlayersListDrones[client_index], Prop_Data, "m_ModelName", modelName, sizeof(modelName));
 	SetEntityModel(client_index, modelName); // Set back to original model

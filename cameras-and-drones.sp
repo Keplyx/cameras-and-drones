@@ -21,6 +21,7 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <cstrike>
+#include <usermessages>
 #include <csgocolors>
 
 
@@ -400,14 +401,14 @@ public void PickupGear(int client_index, int i)
 	{
 		int cam = camerasList.Get(i);
 		GetEntPropVector(cam, Prop_Send, "m_vecOrigin", gearPos);
-		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue)
+		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue || cvar_pickuprange.IntValue == 0)
 			PickupCamera(client_index, cam);
 	}
 	else if (GetClientTeam(client_index) > 1)
 	{
 		int drone = dronesList.Get(i);
 		GetEntPropVector(drone, Prop_Send, "m_vecOrigin", gearPos);
-		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue)
+		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue || cvar_pickuprange.IntValue == 0)
 			PickupDrone(client_index, drone);
 	}
 }
@@ -509,7 +510,7 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 		}
 		if (buttons & IN_SPEED)
 			isDroneMoving[client_index] = true;
-		else
+		else if (!(buttons & IN_FORWARD))
 			isDroneMoving[client_index] = false;
 		
 		if (buttons & IN_JUMP)
@@ -690,4 +691,49 @@ stock bool IsValidClient(int client)
 		return false;
 	}
 	return IsClientInGame(client);
+}
+
+#define FFADE_IN            0x0001        // Just here so we don't pass 0 into the function
+#define FFADE_OUT           0x0002        // Fade out (not in)
+#define FFADE_MODULATE      0x0004        // Modulate (don't blend)
+#define FFADE_STAYOUT       0x0008        // ignores the duration, stays faded out until new ScreenFade message received
+#define FFADE_PURGE         0x0010        // Purges all other fades, replacing them with this one
+
+
+public void SetGearScreen(int client, bool isActive)
+{
+	if (!IsClientInGame(client) || !IsPlayerAlive(client))
+		return;
+	
+	int duration = 255;
+	int holdtime = 255;
+	int color[4];
+	if (isActive)
+		 color[3] = 128
+	else
+		color[3] = 0;
+	color[0] = 120;
+	color[1] = 120;
+	color[2] = 120;
+	
+	Handle message = StartMessageOne("Fade",client);
+	if (GetUserMessageType() == UM_Protobuf)
+	{
+		PbSetInt(message, "duration", duration); //fade
+		PbSetInt(message, "hold_time", holdtime); //blind
+		PbSetInt(message, "flags", FFADE_STAYOUT|FFADE_PURGE);
+		PbSetColor(message, "clr", color);
+	}
+	else
+	{
+		BfWriteShort(message,duration);
+		BfWriteShort(message,holdtime);
+		BfWriteShort(message, FFADE_STAYOUT|FFADE_PURGE);
+		BfWriteByte(message,color[0]);
+		BfWriteByte(message,color[1]);
+		BfWriteByte(message,color[2]);
+		BfWriteByte(message,color[3]);
+	}
+	
+	EndMessage();
 }
