@@ -21,12 +21,18 @@
 ConVar cvar_camteam = null;
 ConVar cvar_camprice = null;
 ConVar cvar_droneprice = null;
+
+ConVar cvar_totalmax_cam = null;
+ConVar cvar_totalmax_drone = null;
+
 public void CreateConVars(char[] version)
 {
 	CreateConVar("cd_version", version, "Cameras and Drones", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
 	cvar_camteam = CreateConVar("cd_camteam", "3", "Set which team can use cameras. The oposite will have drones. 2 = T, 3 = CT", FCVAR_NOTIFY);
 	cvar_camprice = CreateConVar("cd_camprice", "800", "Set cameras price.", FCVAR_NOTIFY, true, 0.0, true, 30000.0);
 	cvar_droneprice = CreateConVar("cd_droneprice", "800", "Set drones price.", FCVAR_NOTIFY, true, 0.0, true, 30000.0);
+	cvar_totalmax_cam = CreateConVar("cd_totalmax_cam", "1", "Set the maximum cameras a player can setup", FCVAR_NOTIFY, true, 0.0, true, 10.0);
+	cvar_totalmax_drone = CreateConVar("cd_totalmax_drone", "1", "Set the maximum drones a player can setup", FCVAR_NOTIFY, true, 0.0, true, 10.0);
 	AutoExecConfig(true, "cameras-and-drones");
 }
 

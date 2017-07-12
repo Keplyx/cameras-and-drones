@@ -62,7 +62,7 @@ public void CreateDrone(int client_index, float pos[3], float rot[3], char model
 	if (IsValidEntity(drone)) {
 		SetEntityModel(drone, modelName);
 		DispatchKeyValue(drone, "solid", "6");
-		//DispatchKeyValue(drone, "overridescript", "mass,100.0,inertia,1.0,damping,1.0,rotdamping ,1.0");
+		//DispatchKeyValue(drone, "overridescript", "mass,100.0,inertia,1.0,damping,1.0,rotdamping ,1.0"); // overwrite params
 		DispatchKeyValue(drone, "overridescript", "rotdamping,1000.0"); // Prevent drone rotation
 		DispatchSpawn(drone);
 		ActivateEntity(drone);
@@ -76,7 +76,7 @@ public void CreateDrone(int client_index, float pos[3], float rot[3], char model
 
 public void CreateDroneModel(int client_index, int drone)
 {
-	// This one can be animated
+	// This one can be animated/move with player
 	int model = CreateEntityByName("prop_dynamic_override"); 
 	if (IsValidEntity(model)) {
 		SetEntityModel(model, droneModel);
@@ -196,7 +196,6 @@ public void TpToDrone(int client_index, int drone)
 	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
 	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
-	SDKHook(client_index, SDKHook_WeaponCanUse, Hook_WeaponCanUse);
 	
 	SetVariantString("!activator"); AcceptEntityInput(client_index, "SetParent", drone, client_index, 0);
 	SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", client_index, activeDrone[client_index][1], 0);
@@ -220,7 +219,6 @@ public void ExitDrone(int client_index)
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 1.0);
 	SDKUnhook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKUnhook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
-	SDKUnhook(client_index, SDKHook_WeaponCanUse, Hook_WeaponCanUse);
 	
 	AcceptEntityInput(client_index, "SetParent");
 	SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", activeDrone[client_index][0], activeDrone[client_index][1], 0);
@@ -259,7 +257,6 @@ public void DestroyDrone(int drone)
 
 public Action Hook_TakeDamageDrone(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	PrintToServer("Damage!");
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
 		if (activeDrone[i][0] == victim || activeDrone[i][1] == victim)

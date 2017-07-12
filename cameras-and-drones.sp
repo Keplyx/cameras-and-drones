@@ -46,6 +46,7 @@ bool lateload;
 int clientsViewmodels[MAXPLAYERS + 1];
 
 char gearWeapon[] = "weapon_tagrenade";
+char dronePhysModel[PLATFORM_MAX_PATH] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl";
 int collisionOffsets;
 
 int boughtGear[MAXPLAYERS + 1];
@@ -96,7 +97,7 @@ public int GetCollOffset()
 public void OnMapStart()
 {
 	PrecacheModel(InCamModel, true);
-	PrecacheModel("models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl", true);
+	PrecacheModel(dronePhysModel, true);
 }
 
 public void OnConfigsExecuted()
@@ -106,13 +107,15 @@ public void OnConfigsExecuted()
 
 public void OnClientPostAdminCheck(int client_index)
 {
-	// Nothing yet
+	SDKHook(client_index, SDKHook_WeaponCanUse, Hook_WeaponCanUse);
 }
 
 public void OnClientDisconnect(int client_index)
 {
-	if (activeCam[client_index][0] > MAXPLAYERS)
+	if (IsClientInCam(client_index))
 		CloseCamera(client_index);
+	if (IsClientInDrone(client_index))
+		CloseDrone(client_index);
 }
 
 public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
@@ -174,30 +177,20 @@ public void OnEntityCreated(int entity_index, const char[] classname)
 {
 	if (StrEqual(classname, "tagrenade_projectile", false))
 	{
-		SDKHook(entity_index, SDKHook_Spawn, OnEntitySpawned);
+		SDKHook(entity_index, SDKHook_Spawn, OnProjectileSpawned);
 	}
-	if (StrEqual(classname, "weapon_tagrenade", false))
-	{
-		char modelName[PLATFORM_MAX_PATH];
-		GetEntPropString(entity_index, Prop_Data, "m_ModelName", modelName, sizeof(modelName));
-		if (StrEqual(modelName, "models/weapons/w_eq_sensorgrenade_dropped.mdl", false)) 
-			RemoveEdict(entity_index);
-	}
-	
 }
 
-public void OnEntitySpawned (int entity_index)
+public void OnProjectileSpawned (int entity_index)
 {
-	// DO not hook flash
+	// Do not hook flash
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
 		if (activeCam[i][1] == entity_index)
 			return;
 	}
 	SDKHook(entity_index, SDKHook_StartTouch, StartTouchGrenade);
-}  
-
-
+}
 
 public Action StartTouchGrenade(int entity1, int entity2)
 {
@@ -214,7 +207,7 @@ public Action StartTouchGrenade(int entity1, int entity2)
 		if (GetClientTeam(owner) == cvar_camteam.IntValue)
 			CreateCamera(owner, pos, rot, modelName);
 		else if (GetClientTeam(owner) > 1)
-			CreateDrone(owner, pos, rot, "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl");
+			CreateDrone(owner, pos, rot, dronePhysModel);
 	}
 }
 
@@ -278,7 +271,7 @@ public Action OpenGear(int client_index, int args) //Set player skin if authoriz
 
 public void OpenCamera(int client_index)
 {
-	if (activeCam[client_index][0] != -1)
+	if (IsClientInCam(client_index))
 	{
 		CloseGear(client_index);
 		return;
@@ -316,7 +309,7 @@ public void OpenCamera(int client_index)
 
 public void OpenDrone(int client_index)
 {
-	if (activeDrone[client_index][0] != -1)
+	if (IsClientInDrone(client_index))
 	{
 		CloseGear(client_index);
 		return;
@@ -354,77 +347,48 @@ public void OpenDrone(int client_index)
 	TpToDrone(client_index, target);
 }
 
-public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
+public bool CanThrowGear(int client_index)
 {
-	if (!IsPlayerAlive(client_index))
-		return Plugin_Continue;
-	
-	if (buttons & IN_USE)
+	if (GetClientTeam(client_index) == cvar_camteam.IntValue)
+		return CanThrowCamera(client_index);
+	else if (GetClientTeam(client_index) > 1)
+		return CanThrowDrone(client_index);
+	else
+		return false;
+}
+
+public bool CanThrowCamera(int client_index)
+{
+	int counter;
+	for (int i = 0; i < camOwnersList.Length; i++)
 	{
-		int target = GetClientAimTarget(client_index, false);
-		int cam = camerasList.FindValue(target);
-		int drone = dronesList.FindValue(target);
-		if (cam != -1 && camOwnersList.Length > 0 && camOwnersList.Get(cam) == client_index)
-			PickupGear(client_index, cam);
-		else if (drone  != -1 && dronesOwnerList.Length > 0 && dronesOwnerList.Get(drone) == client_index)
-			PickupGear(client_index, drone);
+		if (camOwnersList.Get(i) == client_index)
+		counter++;
 	}
-	
-	if (activeCam[client_index][0] != -1 || activeDrone[client_index][0] != -1)
+	if (cvar_totalmax_cam.IntValue > counter)
+		return true;
+	else
 	{
-		//Disable knife cuts
-		float fUnlockTime = GetGameTime() + 1.0;
-		SetEntPropFloat(client_index, Prop_Send, "m_flNextAttack", fUnlockTime);
-		
-		if (buttons & IN_DUCK)
-		{
-			buttons &= ~IN_DUCK;
-			CloseGear(client_index);
-		}
-		if (buttons & IN_USE)
-		{
-			buttons &= ~IN_USE;
-		}
+		PrintHintText(client_index, "<font color='#ff0000' size='30'>You cannot place any more cameras</font>");
+		return false;
 	}
-	else if (buttons & IN_ATTACK) // Stop player from throwing the gear too far
+}
+
+public bool CanThrowDrone(int client_index)
+{
+	int counter;
+	for (int i = 0; i < dronesOwnerList.Length; i++)
 	{
-		int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
-		char weapon_name[64];
-		GetEntityClassname(weapon_index, weapon_name, sizeof(weapon_name))
-		if (StrEqual(weapon_name, gearWeapon, false))
-		{
-			buttons &= ~IN_ATTACK;
-			buttons |= IN_ATTACK2;
-		}
+		if (dronesOwnerList.Get(i) == client_index)
+		counter++;
 	}
-	
-	if (activeDrone[client_index][0] != -1)
+	if (cvar_totalmax_drone.IntValue > counter)
+		return true;
+	else
 	{
-		if (buttons & IN_FORWARD)
-		{
-			vel[0] = 0.0;
-			vel[1] = 0.0;
-			vel[2] = 0.0;
-			isDroneMoving[client_index] = true;
-			MoveDrone(client_index, activeDrone[client_index][0]);
-		}
-		else if (buttons & IN_SPEED)
-			isDroneMoving[client_index] = true;
-		else
-			isDroneMoving[client_index] = false;
-		if (buttons & IN_JUMP)
-		{
-			JumpDrone(client_index, activeDrone[client_index][0]);
-		}
-		if ((buttons & IN_BACK) || (buttons & IN_MOVELEFT) || (buttons & IN_MOVERIGHT))
-		{
-			vel[0] = 0.0;
-			vel[1] = 0.0;
-			vel[2] = 0.0;
-		}
+		PrintHintText(client_index, "<font color='#ff0000' size='30'>You cannot place any more drones</font>");
+		return false;
 	}
-	
-	return Plugin_Changed;
 }
 
 public void PickupGear(int client_index, int i)
@@ -449,41 +413,6 @@ public void PickupDrone(int client_index, int cam)
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>Drone recovered</font>");
 }
 
-stock bool IsValidClient(int client)
-{
-	if (client <= 0 || client > MaxClients || !IsClientConnected(client))
-	{
-		return false;
-	}
-	return IsClientInGame(client);
-}
-
-public void SetViewModel(int client_index, bool enabled)
-{
-	int EntEffects = GetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects");
-	if (enabled)
-		EntEffects |= ~32;
-	else
-		EntEffects |= 32; // Set to Nodraw
-	SetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects", EntEffects);
-}
-
-public Action Hook_SetTransmitPlayer(int entity, int client) // hide player only if using cam/drone
-{
-	if (client != entity && IsValidClient(entity) && (activeCam[entity][0] != -1 || activeDrone[client][0] != -1))
-		return Plugin_Handled;
-	
-	return Plugin_Continue;
-}
-
-public Action Hook_SetTransmitGear(int entity, int client) // Hide cam/drone only to the one using it
-{
-	if (IsValidClient(client) && ((activeCam[client][0] == entity || activeCam[client][1] == entity) || (activeDrone[client][0] == entity || activeDrone[client][1] == entity)))
-		return Plugin_Handled;
-	
-	return Plugin_Continue;
-}
-
 public void CloseGear(int client_index)
 {
 	if (GetClientTeam(client_index) == cvar_camteam.IntValue)
@@ -506,7 +435,141 @@ public void CloseDrone(int client_index)
 	ExitDrone(client_index);
 }
 
-void RemoveHealth(int client_index, float damage, int attacker, int damagetype, char[] weapon)
+public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
+{
+	if (!IsPlayerAlive(client_index))
+		return Plugin_Continue;
+	
+	if (buttons & IN_USE)
+	{
+		int target = GetClientAimTarget(client_index, false);
+		int cam = camerasList.FindValue(target);
+		int drone = dronesList.FindValue(target);
+		if (cam != -1 && camOwnersList.Length > 0 && camOwnersList.Get(cam) == client_index)
+			PickupGear(client_index, cam);
+		else if (drone  != -1 && dronesOwnerList.Length > 0 && dronesOwnerList.Get(drone) == client_index)
+			PickupGear(client_index, drone);
+	}
+	
+	if (IsClientInGear(client_index))
+	{
+		//Disable weapons
+		float fUnlockTime = GetGameTime() + 1.0;
+		SetEntPropFloat(client_index, Prop_Send, "m_flNextAttack", fUnlockTime);
+		
+		if (buttons & IN_DUCK) // Prevent crouching camera bugs
+		{
+			buttons &= ~IN_DUCK;
+			CloseGear(client_index);
+		}
+		if (buttons & IN_USE) // Prevent interaction with the world
+		{
+			buttons &= ~IN_USE;
+		}
+	}
+	else if (buttons & IN_ATTACK) // Stop player from throwing the gear too far
+	{
+		int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
+		char weapon_name[64];
+		GetEntityClassname(weapon_index, weapon_name, sizeof(weapon_name))
+		if (StrEqual(weapon_name, gearWeapon, false))
+		{
+			buttons &= ~IN_ATTACK;
+			buttons |= IN_ATTACK2;
+		}
+	}
+	if (!CanThrowGear(client_index) && (buttons &= IN_ATTACK2)) // Prevent player from throwing too many gear
+	{
+		float fUnlockTime = GetGameTime() + 1.0;
+		SetEntPropFloat(client_index, Prop_Send, "m_flNextAttack", fUnlockTime);
+	}
+	
+	if (IsClientInDrone(client_index)) // Drone specific input
+	{
+		if (buttons & IN_FORWARD)
+		{
+			vel[0] = 0.0;
+			vel[1] = 0.0;
+			vel[2] = 0.0;
+			isDroneMoving[client_index] = true;
+			MoveDrone(client_index, activeDrone[client_index][0]);
+		}
+		if (buttons & IN_SPEED)
+			isDroneMoving[client_index] = true;
+		else
+			isDroneMoving[client_index] = false;
+		
+		if (buttons & IN_JUMP)
+			JumpDrone(client_index, activeDrone[client_index][0]);
+		
+		if ((buttons & IN_BACK) || (buttons & IN_MOVELEFT) || (buttons & IN_MOVERIGHT)) // Block non-forward movement
+		{
+			vel[0] = 0.0;
+			vel[1] = 0.0;
+			vel[2] = 0.0;
+		}
+	}
+	return Plugin_Changed;
+}
+
+public void SetViewModel(int client_index, bool enabled)
+{
+	int EntEffects = GetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects");
+	if (enabled)
+		EntEffects |= ~32;
+	else
+		EntEffects |= 32; // Set to Nodraw
+	SetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects", EntEffects);
+}
+
+public Action Hook_SetTransmitPlayer(int entity_index, int client_index) // hide player only if using cam/drone
+{
+	if (client_index != entity_index && IsValidClient(entity_index) && IsClientInGear(client_index))
+		return Plugin_Handled;
+	
+	return Plugin_Continue;
+}
+
+public Action Hook_SetTransmitGear(int entity_index, int client_index) // Hide cam/drone only to the one using it
+{
+	if (IsValidClient(client_index) && ((activeCam[client_index][0] == entity_index || activeCam[client_index][1] == entity_index) || (activeDrone[client_index][0] == entity_index || activeDrone[client_index][1] == entity_index)))
+		return Plugin_Handled;
+	
+	return Plugin_Continue;
+}
+
+public Action Hook_TakeDamageFakePlayer(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+	int owner = GetEntPropEnt(victim, Prop_Send, "m_hOwnerEntity");
+	char weapon[64];
+	GetClientWeapon(attacker, weapon, sizeof(weapon))
+	RemoveHealth(owner, damage, attacker, damagetype, weapon);
+}
+
+public Action Hook_WeaponCanUse(int client_index, int weapon_index)  
+{
+	if (IsClientInGear(client_index))
+		return Plugin_Handled;
+	
+	
+	return Plugin_Continue;
+}
+
+public Action CommandDrop(int client_index, const char[] command, int argc)
+{
+	if (IsClientInGear(client_index))
+		return Plugin_Handled;
+	
+	int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
+	if (IsWeaponGear(weapon_index))
+	{
+		PrintHintText(client_index, "You cannot drop your gear");
+		return Plugin_Handled;
+	}
+	return Plugin_Continue;
+}
+
+public void RemoveHealth(int client_index, float damage, int attacker, int damagetype, char[] weapon)
 {
 	
 	int health = GetClientHealth(client_index);
@@ -551,14 +614,6 @@ public void DealDamage(int victim, int damage, int attacker, int dmgType, char[]
 	}
 }
 
-public Action Hook_TakeDamageFakePlayer(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
-{
-	int owner = GetEntPropEnt(victim, Prop_Send, "m_hOwnerEntity");
-	char weapon[64];
-	GetClientWeapon(attacker, weapon, sizeof(weapon))
-	RemoveHealth(owner, damage, attacker, damagetype, weapon);
-}
-
 public void CreateFakePlayer(int client_index, bool isCam)
 {
 	int fake = CreateEntityByName("prop_dynamic_override");
@@ -593,14 +648,33 @@ public void HideHudGuns(int client_index)
 	SetEntProp(client_index, Prop_Send, "m_iHideHUD", HIDEHUD_WEAPONSELECTION);
 }
 
-public Action Hook_WeaponCanUse(int client_index, int weapon_index)  
+public bool IsWeaponGear(int weapon_index)
 {
-	return Plugin_Handled;
+	char weapon_name[64];
+	GetEntityClassname(weapon_index, weapon_name, sizeof(weapon_name))
+	return StrEqual(weapon_name, gearWeapon, false);
 }
 
-public Action CommandDrop(int client_index, const char[] command, int argc)
+public bool IsClientInGear(int client_index)
 {
-	if (activeCam[client_index][0] != -1 || activeDrone[client_index][0] != -1)
-		return Plugin_Handled;
-	return Plugin_Continue;
+	return IsClientInCam(client_index) || IsClientInDrone(client_index);
+}
+
+public bool IsClientInCam(int client_index)
+{
+	return activeCam[client_index][0] > MAXPLAYERS;
+}
+
+public bool IsClientInDrone(int client_index)
+{
+	return activeDrone[client_index][0] > MAXPLAYERS;
+}
+
+stock bool IsValidClient(int client)
+{
+	if (client <= 0 || client > MaxClients || !IsClientConnected(client))
+	{
+		return false;
+	}
+	return IsClientInGame(client);
 }
