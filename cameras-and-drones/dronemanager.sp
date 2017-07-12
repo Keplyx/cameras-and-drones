@@ -38,13 +38,16 @@ float droneGroundMax = 1.0;
 
 float droneEyePosOffset = 10.0;
 float droneSpeed = 200.0;
-float droneJumpForce = 500.0;
+float droneJumpForce = 150.0;
 float droneFallSpeed = 300.0;
 
 bool isDroneGrounded[MAXPLAYERS + 1];
 bool isDroneMoving[MAXPLAYERS + 1];
 
 float lastVelInput[MAXPLAYERS + 1][3];
+
+float airTime = -1.0;
+Handle airTimeTimer = INVALID_HANDLE;
 
 public void AddDrone(int drone, int model, int client_index)
 {
@@ -106,6 +109,7 @@ public void JumpDrone(int client_index)
 		GetAngleVectors(rot, vel, NULL_VECTOR, NULL_VECTOR);
 		ScaleVector(vel, droneJumpForce);
 		TeleportEntity(client_index, NULL_VECTOR, NULL_VECTOR, vel);
+		lastVelInput[client_index] = vel;
 	}
 }
 
@@ -124,16 +128,46 @@ public void Hook_PostThinkDrone(int client_index)
 	//ang[0] == 90.0 && ang[1] == 0.0 && ang[2] == 0.0 >>>>>>>> checkGround
 	CheckDirection(client_index, pos, ang, true);
 	pos[2] += droneEyePosOffset; // Box around eyes: prevent from stopping in slopes
-	CheckBox(client_index, pos);
-//	ang[0] = 0.0; ang[1] = 90.0; ang[2] = 0.0;
-//	CheckDirection(client_index, pos, ang, false);
-//	ang[0] = 0.0; ang[1] = -90.0; ang[2] = 0.0;
-//	CheckDirection(client_index, pos, ang, false);
-//	
-//	ang[0] = 0.0; ang[1] = 0.0; ang[2] = 90.0;
-//	CheckDirection(client_index, pos, ang, false);
-//	ang[0] = 0.0; ang[1] = 0.0; ang[2] = -90.0;
-//	CheckDirection(client_index, pos, ang, false);
+	//CheckBox(client_index, pos);
+	PerformFall(client_index);
+}
+
+public void PerformFall(int client_index)
+{
+	if (isDroneGrounded[client_index])
+	{
+		airTime = -1.0;
+		if (airTimeTimer != INVALID_HANDLE)
+		{
+			KillTimer(airTimeTimer, false);
+			airTimeTimer = INVALID_HANDLE;
+		}
+		return;
+	}
+	if (airTime < 0.0)
+	{
+		airTime = 0.0;
+		int ref = EntIndexToEntRef(client_index);
+		airTimeTimer = CreateTimer(0.1, Timer_IncrementAirTime, ref, TIMER_REPEAT);
+		return;
+	}
+	float vel[3];
+	vel = lastVelInput[client_index];
+	float step = (droneFallSpeed/5) * airTime;
+	vel[2] -= step;
+	if (vel[2] < droneFallSpeed)
+		vel[2] = -droneFallSpeed;
+	
+	PrintToServer("---------------------------");
+	PrintToServer("airTime: %f", airTime);
+	PrintToServer("step: %f", step);
+	PrintToServer("vel[2]: %f", vel[2]);
+	TeleportEntity(client_index, NULL_VECTOR, NULL_VECTOR, vel);
+}
+
+public Action Timer_IncrementAirTime(Handle timer, any ref)
+{
+	airTime += 0.1;
 }
 
 public void CheckBox(int client_index, float pos[3])
@@ -175,7 +209,7 @@ public void CheckDirection(int client_index, float pos[3], float ang[3], bool ch
 			}
 		}
 		
-		if (checkGround && dist <= (droneGroundMax + 2.0))
+		if (checkGround && dist <= (droneGroundMax + 5.0))
 			isDroneGrounded[client_index] = true;
 		else if (checkGround && dist > (droneGroundMax + 5.0))
 			isDroneGrounded[client_index] = false;
@@ -188,17 +222,7 @@ public void CheckDirection(int client_index, float pos[3], float ang[3], bool ch
 //		PrintToServer("offset: %f", offset);
 //		PrintToServer("grounded: %b", isDroneGrounded[client_index]);
 		
-		float vel[3];
-		if (checkGround && !isDroneGrounded[client_index])
-		{
-			vel = lastVelInput[client_index];
-			vel[2] = -droneFallSpeed;
-			TeleportEntity(client_index, pos, NULL_VECTOR, vel);
-		}
-		else if (checkGround && !isDroneMoving[client_index])
-			TeleportEntity(client_index, pos, NULL_VECTOR, vel);
-		else
-			TeleportEntity(client_index, pos, NULL_VECTOR, NULL_VECTOR);
+		TeleportEntity(client_index, pos, NULL_VECTOR, NULL_VECTOR);
 	}
 	CloseHandle(trace)
 }
