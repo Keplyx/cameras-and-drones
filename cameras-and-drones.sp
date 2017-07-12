@@ -369,7 +369,7 @@ public bool CanThrowCamera(int client_index)
 		return true;
 	else
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='30'>You cannot place any more cameras</font>");
+		PrintHintText(client_index, "<font color='#ff0000' size='25'>You cannot place any more cameras</font>");
 		return false;
 	}
 }
@@ -386,7 +386,7 @@ public bool CanThrowDrone(int client_index)
 		return true;
 	else
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='30'>You cannot place any more drones</font>");
+		PrintHintText(client_index, "<font color='#ff0000' size='25'>You cannot place any more drones</font>");
 		return false;
 	}
 }
@@ -478,7 +478,7 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			buttons |= IN_ATTACK2;
 		}
 	}
-	if (!CanThrowGear(client_index) && (buttons &= IN_ATTACK2)) // Prevent player from throwing too many gear
+	if (!CanThrowGear(client_index) && (buttons & IN_ATTACK2)) // Prevent player from throwing too many gear
 	{
 		float fUnlockTime = GetGameTime() + 1.0;
 		SetEntPropFloat(client_index, Prop_Send, "m_flNextAttack", fUnlockTime);
