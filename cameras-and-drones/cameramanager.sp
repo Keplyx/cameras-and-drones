@@ -111,6 +111,13 @@ public void Hook_PostThinkCam(int client_index)
 	
 	HideHudGuns(client_index);
 	SetViewModel(client_index, false);
+	LowerCameraView(client_index);
+}
+
+public void LowerCameraView(int client_index)
+{
+	float viewPos[3];
+	SetEntPropVector(client_index, Prop_Data, "m_vecViewOffset", viewPos);
 }
 
 public void TpToCam(int client_index, int cam)
@@ -124,17 +131,14 @@ public void TpToCam(int client_index, int cam)
 	
 	SetEntityModel(client_index, InCamModel); // Set to a small model to prevent collisions/shots
 	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
-	//SetEntityRenderMode(client_index, RENDER_NONE);
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 0.0);
 	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkCam);
+	// Set pos
+	SetVariantString("!activator"); AcceptEntityInput(client_index, "SetParent", cam, client_index, 0);
+	float pos[3], rot[3];
+	TeleportEntity(client_index, pos, rot, NULL_VECTOR);
 	
-	float pos[3], absPos[3], eyePos[3];
-	GetEntPropVector(cam, Prop_Send, "m_vecOrigin", pos);
-	GetClientAbsOrigin(client_index, absPos);
-	GetClientEyePosition(client_index, eyePos);
-	pos[2] -= eyePos[2] - absPos[2];
-	TeleportEntity(client_index, pos, NULL_VECTOR, NULL_VECTOR);
 	oldCollisionValue[client_index] = GetEntData(client_index, GetCollOffset(), 1);
 	SetEntData(client_index, GetCollOffset(), 2, 4, true);
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 2);
@@ -156,7 +160,8 @@ public void ExitCam(int client_index)
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 1.0);
 	SDKUnhook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKUnhook(client_index, SDKHook_PostThink, Hook_PostThinkCam);
-	
+	// Set pos
+	AcceptEntityInput(client_index, "SetParent");
 	float pos[3], rot[3];
 	GetEntPropVector(fakePlayersListCamera[client_index], Prop_Send, "m_vecOrigin", pos);
 	GetEntPropVector(fakePlayersListCamera[client_index], Prop_Send, "m_angRotation", rot);
