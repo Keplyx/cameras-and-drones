@@ -270,13 +270,6 @@ public void ExitDrone(int client_index)
 
 public void DestroyDrone(int drone)
 {
-	if (IsValidEdict(drone))
-		RemoveEdict(drone);
-	if (IsValidEdict(dronesModelList.Get(dronesList.FindValue(drone))))
-		RemoveEdict(dronesModelList.Get(dronesList.FindValue(drone)));
-	
-	RemoveDroneFromList(drone);
-	
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
 		if (activeDrone[i][0] == drone)
@@ -284,6 +277,13 @@ public void DestroyDrone(int drone)
 			CloseDrone(i);
 		}
 	}
+	
+	if (IsValidEdict(drone))
+		RemoveEdict(drone);
+	if (IsValidEdict(dronesModelList.Get(dronesList.FindValue(drone))))
+		RemoveEdict(dronesModelList.Get(dronesList.FindValue(drone)));
+	
+	RemoveDroneFromList(drone);
 }
 
 public Action Hook_TakeDamageDrone(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)

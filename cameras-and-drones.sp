@@ -76,6 +76,7 @@ public void OnPluginStart()
 	HookEvent("round_start", Event_RoundStart);
 	HookEvent("player_spawn", Event_PlayerSpawn);
 	AddCommandListener(CommandDrop, "drop"); 
+	AddCommandListener(CommandJoinTeam, "jointeam");
 	
 	CreateConVars(VERSION);
 	RegisterCommands();
@@ -121,10 +122,22 @@ public void OnClientPostAdminCheck(int client_index)
 
 public void OnClientDisconnect(int client_index)
 {
-	if (IsClientInCam(client_index))
-		CloseCamera(client_index);
-	if (IsClientInDrone(client_index))
-		CloseDrone(client_index);
+	ResetPlayer(client_index);
+}
+
+public void ResetPlayer(int client_index)
+{
+	for (int i = 0; i < dronesList.Length; i++)
+	{
+		if (dronesOwnerList.Get(i) == client_index)
+			DestroyDrone(dronesList.Get(i));
+	}
+	for (int i = 0; i < camerasList.Length; i++)
+	{
+		if (camOwnersList.Get(i) == client_index)
+			DestroyCamera(camerasList.Get(i));
+	}
+	boughtGear[client_index] = 0;
 }
 
 public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
@@ -594,6 +607,13 @@ public Action CommandDrop(int client_index, const char[] command, int argc)
 		PrintHintText(client_index, "You cannot drop your gear");
 		return Plugin_Handled;
 	}
+	return Plugin_Continue;
+}
+
+public Action CommandJoinTeam(int client_index, const char[] command, int argc)
+{
+	if (IsClientInGear(client_index))
+		ResetPlayer(client_index)
 	return Plugin_Continue;
 }
 

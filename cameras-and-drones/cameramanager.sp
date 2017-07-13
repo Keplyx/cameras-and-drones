@@ -173,14 +173,6 @@ public void ExitCam(int client_index)
 
 public void DestroyCamera(int cam)
 {
-	float pos[3];
-	GetEntPropVector(cam, Prop_Send, "m_vecOrigin", pos);
-	EmitSoundToAll(destroyCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
-
-	if (IsValidEdict(cam))
-		RemoveEdict(cam);
-	RemoveCameraFromList(cam);
-	
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
 		if (activeCam[i][0] == cam)
@@ -188,6 +180,14 @@ public void DestroyCamera(int cam)
 			CloseCamera(i);
 		}
 	}
+	
+	float pos[3];
+	GetEntPropVector(cam, Prop_Send, "m_vecOrigin", pos);
+	EmitSoundToAll(destroyCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
+
+	if (IsValidEdict(cam))
+		RemoveEdict(cam);
+	RemoveCameraFromList(cam);
 }
 
 public Action Hook_TakeDamageCam(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
