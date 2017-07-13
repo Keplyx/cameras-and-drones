@@ -48,6 +48,8 @@ int clientsViewmodels[MAXPLAYERS + 1];
 
 char gearWeapon[] = "weapon_tagrenade";
 char dronePhysModel[PLATFORM_MAX_PATH] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl";
+
+
 int collisionOffsets;
 
 int boughtGear[MAXPLAYERS + 1];
@@ -100,6 +102,11 @@ public void OnMapStart()
 	PrecacheModel(InCamModel, true);
 	PrecacheModel(dronePhysModel, true);
 	PrecacheSound(droneSound, true);
+	PrecacheSound(droneJumpSound, true);
+	PrecacheSound(openDroneSound, true);
+	PrecacheSound(destroyDroneSound, true);
+	PrecacheSound(openCamSound, true);
+	PrecacheSound(destroyCamSound, true);
 }
 
 public void OnConfigsExecuted()

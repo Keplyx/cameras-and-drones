@@ -19,15 +19,16 @@
 #include <sdktools>
 #include <sdkhooks>
 
-// Jump sound
-// Enter gear sound
-// Destroy sound (not with emit sound to all)
-
-// Fix drone rotation only when grounded?
-
 char droneSound[] = "ambient/tones/fan2_loop.wav";
+char droneJumpSound[] = "items/nvg_off.wav";
+char openDroneSound[] = "weapons/movement3.wav";
+char destroyDroneSound[] = "physics/metal/metal_box_impact_bullet1.wav";
+
+
 char inDroneModel[] = "models/chicken/festive_egg.mdl";
 char droneModel[] = "models/weapons/w_eq_sensorgrenade_thrown.mdl";
+
+
 
 ArrayList dronesList;
 ArrayList dronesModelList;
@@ -125,6 +126,7 @@ public void JumpDrone(int client_index, int drone)
 		GetAngleVectors(rot, vel, NULL_VECTOR, NULL_VECTOR);
 		ScaleVector(vel, droneJumpForce);
 		TeleportEntity(drone, NULL_VECTOR, NULL_VECTOR, vel);
+		EmitSoundToAll(droneJumpSound, drone, SNDCHAN_AUTO, SNDLEVEL_CAR, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 	}
 }
 
@@ -196,7 +198,10 @@ public void TpToDrone(int client_index, int drone)
 {
 	// Allow for drone to drone switch
 	if (fakePlayersListDrones[client_index] < 1)
+	{
 		CreateFakePlayer(client_index, false);
+		EmitSoundToClient(client_index, openDroneSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
+	}
 	if (activeDrone[client_index][1] > MAXPLAYERS)
 	{
 		SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", activeDrone[client_index][0], activeDrone[client_index][1], 0);
@@ -255,6 +260,7 @@ public void ExitDrone(int client_index)
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 0);
 	// Sound
 	StopSound(activeDrone[client_index][0], SNDCHAN_AUTO, droneSound)
+	EmitSoundToClient(client_index, openDroneSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 	// Clear stuff
 	RemoveEdict(fakePlayersListDrones[client_index]);
 	fakePlayersListDrones[client_index] = -1;
@@ -282,6 +288,9 @@ public void DestroyDrone(int drone)
 
 public Action Hook_TakeDamageDrone(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
+	float pos[3];
+	GetEntPropVector(victim, Prop_Send, "m_vecOrigin", pos);
+	EmitSoundToAll(destroyDroneSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
 		if (activeDrone[i][0] == victim || activeDrone[i][1] == victim)

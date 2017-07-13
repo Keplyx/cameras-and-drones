@@ -19,6 +19,9 @@
 #include <sdktools>
 #include <sdkhooks>
 
+char openCamSound[] = "weapons/movement3.wav";
+char destroyCamSound[] = "physics/metal/metal_box_impact_bullet1.wav";
+
 char InCamModel[] = "models/chicken/festive_egg.mdl";
 
 ArrayList camerasList;
@@ -113,8 +116,10 @@ public void Hook_PostThinkCam(int client_index)
 public void TpToCam(int client_index, int cam)
 {
 	if (fakePlayersListCamera[client_index] < 1)
+	{
 		CreateFakePlayer(client_index, true);
-	
+		EmitSoundToClient(client_index, openCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
+	}	
 	SetGearScreen(client_index, true);
 	
 	SetEntityModel(client_index, InCamModel); // Set to a small model to prevent collisions/shots
@@ -162,10 +167,16 @@ public void ExitCam(int client_index)
 	RemoveEdict(fakePlayersListCamera[client_index]);
 	fakePlayersListCamera[client_index] = -1;
 	DestroyFlash(client_index);
+	
+	EmitSoundToClient(client_index, openCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 }
 
 public void DestroyCamera(int cam)
 {
+	float pos[3];
+	GetEntPropVector(cam, Prop_Send, "m_vecOrigin", pos);
+	EmitSoundToAll(destroyCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
+
 	if (IsValidEdict(cam))
 		RemoveEdict(cam);
 	RemoveCameraFromList(cam);
@@ -181,6 +192,9 @@ public void DestroyCamera(int cam)
 
 public Action Hook_TakeDamageCam(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
+	float pos[3];
+	GetEntPropVector(victim, Prop_Send, "m_vecOrigin", pos);
+	EmitSoundToAll(destroyCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
 		if (activeCam[i][0] == victim || activeCam[i][1] == victim)
