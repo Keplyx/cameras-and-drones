@@ -99,6 +99,7 @@ public void OnMapStart()
 {
 	PrecacheModel(InCamModel, true);
 	PrecacheModel(dronePhysModel, true);
+	PrecacheSound(droneSound, true);
 }
 
 public void OnConfigsExecuted()

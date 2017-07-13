@@ -19,7 +19,14 @@
 #include <sdktools>
 #include <sdkhooks>
 
-char InDroneModel[] = "models/chicken/festive_egg.mdl";
+// Jump sound
+// Enter gear sound
+// Destroy sound (not with emit sound to all)
+
+// Fix drone rotation only when grounded?
+
+char droneSound[] = "ambient/tones/fan2_loop.wav";
+char inDroneModel[] = "models/chicken/festive_egg.mdl";
 char droneModel[] = "models/weapons/w_eq_sensorgrenade_thrown.mdl";
 
 ArrayList dronesList;
@@ -195,12 +202,13 @@ public void TpToDrone(int client_index, int drone)
 		SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", activeDrone[client_index][0], activeDrone[client_index][1], 0);
 		float pos[3], rot[3];
 		TeleportEntity(activeDrone[client_index][1], pos, rot, NULL_VECTOR);
+		StopSound(activeDrone[client_index][0], SNDCHAN_AUTO, droneSound)
 	}
 	// Set active
 	activeDrone[client_index][0] = drone;
 	activeDrone[client_index][1] = dronesModelList.Get(dronesList.FindValue(drone));
 	// Set appearance
-	SetEntityModel(client_index, InDroneModel); // Set to a small model to prevent collisions/shots
+	SetEntityModel(client_index, inDroneModel); // Set to a small model to prevent collisions/shots
 	SetGearScreen(client_index, true);
 	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
 	// Hooks
@@ -217,6 +225,9 @@ public void TpToDrone(int client_index, int drone)
 	oldCollisionValueD[client_index] = GetEntData(client_index, GetCollOffset(), 1);
 	SetEntData(client_index, GetCollOffset(), 2, 4, true);
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 2);
+	
+	// Sound
+	EmitSoundToAll(droneSound, drone, SNDCHAN_AUTO, SNDLEVEL_CAR, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 }
 
 public void ExitDrone(int client_index)
@@ -242,6 +253,8 @@ public void ExitDrone(int client_index)
 	// Set collisions
 	SetEntData(client_index, GetCollOffset(), oldCollisionValueD[client_index], 1, true);
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 0);
+	// Sound
+	StopSound(activeDrone[client_index][0], SNDCHAN_AUTO, droneSound)
 	// Clear stuff
 	RemoveEdict(fakePlayersListDrones[client_index]);
 	fakePlayersListDrones[client_index] = -1;
