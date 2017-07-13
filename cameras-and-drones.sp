@@ -49,6 +49,7 @@ int clientsViewmodels[MAXPLAYERS + 1];
 char gearWeapon[] = "weapon_tagrenade";
 char dronePhysModel[PLATFORM_MAX_PATH] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl";
 
+bool canDisplayThrowWarning[MAXPLAYERS + 1];
 
 int collisionOffsets;
 
@@ -138,6 +139,7 @@ public void ResetPlayer(int client_index)
 			DestroyCamera(camerasList.Get(i));
 	}
 	boughtGear[client_index] = 0;
+	canDisplayThrowWarning[client_index] = true;
 }
 
 public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
@@ -161,6 +163,7 @@ public void InitVars()
 		fakePlayersListCamera[i] = -1;
 		fakePlayersListDrones[i] = -1;
 		boughtGear[i] = 0;
+		canDisplayThrowWarning[i] = true;
 	}
 }
 
@@ -380,6 +383,15 @@ public bool CanThrowGear(int client_index)
 		return false;
 }
 
+public Action Timer_DisplayThrowWarning(Handle timer, any ref)
+{
+	int client_index = EntRefToEntIndex(ref);
+	if (IsValidClient(client_index))
+	{
+		canDisplayThrowWarning[client_index] = true;
+	}
+}
+
 public bool CanThrowCamera(int client_index)
 {
 	int counter;
@@ -392,7 +404,13 @@ public bool CanThrowCamera(int client_index)
 		return true;
 	else
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='25'>You cannot place any more cameras</font>");
+		if (canDisplayThrowWarning[client_index])
+		{
+			canDisplayThrowWarning[client_index] = false;
+			PrintHintText(client_index, "<font color='#ff0000' size='25'>You cannot place any more cameras</font>");
+			int ref = EntIndexToEntRef(client_index);
+			CreateTimer(1.0, Timer_DisplayThrowWarning, ref);
+		}
 		return false;
 	}
 }
@@ -409,7 +427,13 @@ public bool CanThrowDrone(int client_index)
 		return true;
 	else
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='25'>You cannot place any more drones</font>");
+		if (canDisplayThrowWarning[client_index])
+		{
+			canDisplayThrowWarning[client_index] = false;
+			PrintHintText(client_index, "<font color='#ff0000' size='25'>You cannot place any more drones</font>");
+			int ref = EntIndexToEntRef(client_index);
+			CreateTimer(1.0, Timer_DisplayThrowWarning, ref);
+		}
 		return false;
 	}
 }
@@ -423,14 +447,14 @@ public void PickupGear(int client_index, int i)
 	{
 		int cam = camerasList.Get(i);
 		GetEntPropVector(cam, Prop_Send, "m_vecOrigin", gearPos);
-		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue || cvar_pickuprange.IntValue == 0)
+		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue)
 			PickupCamera(client_index, cam);
 	}
 	else if (GetClientTeam(client_index) > 1)
 	{
 		int drone = dronesList.Get(i);
 		GetEntPropVector(drone, Prop_Send, "m_vecOrigin", gearPos);
-		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue || cvar_pickuprange.IntValue == 0)
+		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue)
 			PickupDrone(client_index, drone);
 	}
 }
@@ -481,18 +505,7 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 	if (!IsPlayerAlive(client_index))
 		return Plugin_Continue;
 	
-	if (buttons & IN_USE)
-	{
-		int target = GetClientAimTarget(client_index, false);
-		int cam = camerasList.FindValue(target);
-		int drone = dronesList.FindValue(target);
-		if (cam != -1 && camOwnersList.Length > 0 && camOwnersList.Get(cam) == client_index)
-			PickupGear(client_index, cam);
-		else if (drone  != -1 && dronesOwnerList.Length > 0 && dronesOwnerList.Get(drone) == client_index)
-			PickupGear(client_index, drone);
-	}
-	
-	if (IsClientInGear(client_index))
+	if (IsClientInGear(client_index)) // in gear input
 	{
 		//Disable weapons
 		float fUnlockTime = GetGameTime() + 1.0;
@@ -508,21 +521,40 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			buttons &= ~IN_USE;
 		}
 	}
-	else if (buttons & IN_ATTACK) // Stop player from throwing the gear too far
+	else // normal player input
 	{
-		int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
-		char weapon_name[64];
-		GetEntityClassname(weapon_index, weapon_name, sizeof(weapon_name))
-		if (StrEqual(weapon_name, gearWeapon, false))
+		if (buttons & IN_USE) // pickup
 		{
-			buttons &= ~IN_ATTACK;
-			buttons |= IN_ATTACK2;
+			int target = GetClientAimTarget(client_index, false);
+			int cam = camerasList.FindValue(target);
+			int drone = dronesList.FindValue(target);
+			if (cam != -1 && camOwnersList.Length > 0 && camOwnersList.Get(cam) == client_index)
+				PickupGear(client_index, cam);
+			else if (drone  != -1 && dronesOwnerList.Length > 0 && dronesOwnerList.Get(drone) == client_index)
+				PickupGear(client_index, drone);
 		}
-	}
-	if (!CanThrowGear(client_index) && (buttons & IN_ATTACK2)) // Prevent player from throwing too many gear
-	{
-		float fUnlockTime = GetGameTime() + 1.0;
-		SetEntPropFloat(client_index, Prop_Send, "m_flNextAttack", fUnlockTime);
+		if (buttons & IN_ATTACK) // Stop player from throwing the gear too far
+		{
+			int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
+			char weapon_name[64];
+			GetEntityClassname(weapon_index, weapon_name, sizeof(weapon_name))
+			if (StrEqual(weapon_name, gearWeapon, false))
+			{
+				buttons &= ~IN_ATTACK;
+				buttons |= IN_ATTACK2;
+			}
+		}
+		if ((buttons & IN_ATTACK2)) // Prevent player from throwing too many gear
+		{
+			int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
+			char weapon_name[64];
+			GetEntityClassname(weapon_index, weapon_name, sizeof(weapon_name))
+			if (StrEqual(weapon_name, gearWeapon, false) && !CanThrowGear(client_index))
+			{
+				float fUnlockTime = GetGameTime() + 1.0;
+				SetEntPropFloat(client_index, Prop_Send, "m_flNextAttack", fUnlockTime);
+			}
+		}
 	}
 	
 	if (IsClientInDrone(client_index)) // Drone specific input
@@ -672,8 +704,9 @@ public void CreateFakePlayer(int client_index, bool isCam)
 		SetEntPropEnt(fake, Prop_Send, "m_hOwnerEntity", client_index);
 		
 		float pos[3], rot[3];
+		GetClientEyeAngles(client_index, rot);
+		rot[0] = 0.0;
 		GetEntPropVector(client_index, Prop_Send, "m_vecOrigin", pos);
-		GetEntPropVector(client_index, Prop_Send, "m_angRotation", rot);
 		TeleportEntity(fake, pos, rot, NULL_VECTOR);
 		DispatchKeyValue(fake, "Solid", "6");
 		DispatchSpawn(fake);

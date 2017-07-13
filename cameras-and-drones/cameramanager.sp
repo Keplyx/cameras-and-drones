@@ -132,17 +132,18 @@ public void TpToCam(int client_index, int cam)
 	SetEntityModel(client_index, InCamModel); // Set to a small model to prevent collisions/shots
 	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 0.0);
+	// Hooks
 	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkCam);
 	// Set pos
 	SetVariantString("!activator"); AcceptEntityInput(client_index, "SetParent", cam, client_index, 0);
 	float pos[3], rot[3];
 	TeleportEntity(client_index, pos, rot, NULL_VECTOR);
-	
+	// Set collisiosn
 	oldCollisionValue[client_index] = GetEntData(client_index, GetCollOffset(), 1);
 	SetEntData(client_index, GetCollOffset(), 2, 4, true);
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 2);
-	
+	// Create flashing light
 	DestroyFlash(client_index);
 	CreateFlash(client_index, cam);
 }
@@ -158,6 +159,7 @@ public void ExitCam(int client_index)
 	SetViewModel(client_index, true);
 	SetEntityMoveType(client_index, MOVETYPE_WALK);
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 1.0);
+	// Hooks
 	SDKUnhook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKUnhook(client_index, SDKHook_PostThink, Hook_PostThinkCam);
 	// Set pos
@@ -166,13 +168,14 @@ public void ExitCam(int client_index)
 	GetEntPropVector(fakePlayersListCamera[client_index], Prop_Send, "m_vecOrigin", pos);
 	GetEntPropVector(fakePlayersListCamera[client_index], Prop_Send, "m_angRotation", rot);
 	TeleportEntity(client_index, pos, rot, NULL_VECTOR);
+	// Set collisions
 	SetEntData(client_index, GetCollOffset(), oldCollisionValue[client_index], 1, true);
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 0);
-	
+	// Remove props
 	RemoveEdict(fakePlayersListCamera[client_index]);
 	fakePlayersListCamera[client_index] = -1;
 	DestroyFlash(client_index);
-	
+	// Sound!
 	EmitSoundToClient(client_index, openCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 }
 
@@ -186,10 +189,6 @@ public void DestroyCamera(int cam)
 		}
 	}
 	
-	float pos[3];
-	GetEntPropVector(cam, Prop_Send, "m_vecOrigin", pos);
-	EmitSoundToAll(destroyCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
-
 	if (IsValidEdict(cam))
 		RemoveEdict(cam);
 	RemoveCameraFromList(cam);
