@@ -27,8 +27,8 @@
 
 #pragma newdecls required;
 
-#include "cameras-and-drones/dronemanager.sp"
-#include "cameras-and-drones/menus.sp"
+#include "cameras-and-drones/cameramenus.sp"
+#include "cameras-and-drones/dronemenus.sp"
 #include "cameras-and-drones/init.sp"
 
 
@@ -345,6 +345,7 @@ public void OpenDrone(int client_index)
 		return;
 	}
 	
+	Menu_Drones(client_index, dronesList.FindValue(target));
 	TpToDrone(client_index, target);
 }
 
@@ -438,15 +439,20 @@ public void CloseCamera(int client_index)
 {
 	ExitCam(client_index);
 	activeCam[client_index][0] = -1;
-	if (playerMenus[client_index] != null)
+	if (playerCamMenus[client_index] != null)
 	{
-		delete playerMenus[client_index];
+		delete playerCamMenus[client_index];
 	}
 }
 
 public void CloseDrone(int client_index)
 {
 	ExitDrone(client_index);
+	activeDrone[client_index][0] = -1;
+	if (playerDroneMenus[client_index] != null)
+	{
+		delete playerDroneMenus[client_index];
+	}
 }
 
 public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])

@@ -125,7 +125,7 @@ public void Hook_PostThinkDrone(int client_index)
 {
 	if (activeDrone[client_index][0] < 0)
 		return
-	int drone = dronesList.Get(dronesOwnerList.FindValue(client_index));
+	int drone = activeDrone[client_index][0];
 	float groundDistance = DistanceToGround(drone);
 	
 	LowerDroneView(client_index);
@@ -187,24 +187,33 @@ public bool TraceFilterIgnorePlayers(int entity_index, int mask, any data)
 
 public void TpToDrone(int client_index, int drone)
 {
+	// Allow for drone to drone switch
 	if (fakePlayersListDrones[client_index] < 1)
 		CreateFakePlayer(client_index, false);
-	
-	SetGearScreen(client_index, true);
-	
+	if (activeDrone[client_index][1] > MAXPLAYERS)
+	{
+		SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", activeDrone[client_index][0], activeDrone[client_index][1], 0);
+		float pos[3], rot[3];
+		TeleportEntity(activeDrone[client_index][1], pos, rot, NULL_VECTOR);
+	}
+	// Set active
 	activeDrone[client_index][0] = drone;
 	activeDrone[client_index][1] = dronesModelList.Get(dronesList.FindValue(drone));
+	// Set appearance
 	SetEntityModel(client_index, InDroneModel); // Set to a small model to prevent collisions/shots
+	SetGearScreen(client_index, true);
 	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
+	// Hooks
 	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
-	
+	// Set pos
 	SetVariantString("!activator"); AcceptEntityInput(client_index, "SetParent", drone, client_index, 0);
 	SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", client_index, activeDrone[client_index][1], 0);
 	float pos[3], rot[3];
 	TeleportEntity(client_index, pos, rot, NULL_VECTOR);
 	rot[1] = 90.0;
 	TeleportEntity(activeDrone[client_index][1] , pos, rot, NULL_VECTOR);
+	// Set collisions
 	oldCollisionValueD[client_index] = GetEntData(client_index, GetCollOffset(), 1);
 	SetEntData(client_index, GetCollOffset(), 2, 4, true);
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 2);
@@ -212,29 +221,28 @@ public void TpToDrone(int client_index, int drone)
 
 public void ExitDrone(int client_index)
 {
-	SetGearScreen(client_index, false);
-	
+	// Set appearance
 	char modelName[PLATFORM_MAX_PATH];
 	GetEntPropString(fakePlayersListDrones[client_index], Prop_Data, "m_ModelName", modelName, sizeof(modelName));
 	SetEntityModel(client_index, modelName); // Set back to original model
-	
+	SetGearScreen(client_index, false);
 	SetViewModel(client_index, true);
 	SetEntityMoveType(client_index, MOVETYPE_WALK);
-	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 1.0);
+	// Hooks
 	SDKUnhook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKUnhook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
-	
+	// Set pos
 	AcceptEntityInput(client_index, "SetParent");
 	SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", activeDrone[client_index][0], activeDrone[client_index][1], 0);
 	float pos[3], rot[3];
 	TeleportEntity(activeDrone[client_index][1], pos, rot, NULL_VECTOR);
-	
 	GetEntPropVector(fakePlayersListDrones[client_index], Prop_Send, "m_vecOrigin", pos);
 	GetEntPropVector(fakePlayersListDrones[client_index], Prop_Send, "m_angRotation", rot);
 	TeleportEntity(client_index, pos, rot, NULL_VECTOR);
+	// Set collisions
 	SetEntData(client_index, GetCollOffset(), oldCollisionValueD[client_index], 1, true);
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 0);
-	
+	// Clear stuff
 	RemoveEdict(fakePlayersListDrones[client_index]);
 	fakePlayersListDrones[client_index] = -1;
 	activeDrone[client_index][0] = -1;

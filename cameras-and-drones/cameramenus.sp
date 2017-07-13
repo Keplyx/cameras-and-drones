@@ -21,12 +21,12 @@
 
 #include "cameras-and-drones/cameramanager.sp"
 
-Menu playerMenus[MAXPLAYERS + 1];
+Menu playerCamMenus[MAXPLAYERS + 1];
 
 public void Menu_Cameras(int client_index, int args)
 {
-	playerMenus[client_index] = new Menu(MenuHandler_Cameras);
-	playerMenus[client_index].SetTitle("Available cameras");
+	playerCamMenus[client_index] = new Menu(MenuHandler_Cameras);
+	playerCamMenus[client_index].SetTitle("Available cameras");
 	char name[64], ownerName[64], num[8];
 	for (int i = 0; i < camerasList.Length; i++)
 	{
@@ -35,22 +35,21 @@ public void Menu_Cameras(int client_index, int args)
 		
 		if (args == i)
 		{
-			Format(name, sizeof(name), "Active: %s", ownerName);
+			Format(name, sizeof(name), "Active: %s's Camera", ownerName);
 			Format(num, sizeof(num), "%i", -1);
-			playerMenus[client_index].AddItem(num, name, ITEMDRAW_DISABLED);
+			playerCamMenus[client_index].AddItem(num, name, ITEMDRAW_DISABLED);
 			activeCam[client_index][0] = camerasList.Get(i);
 		}
 		else
 		{
-			Format(name, sizeof(name), "%s", ownerName);
+			Format(name, sizeof(name), "Watch %s's Camera", ownerName);
 			Format(num, sizeof(num), "%i", i);
-			playerMenus[client_index].AddItem(num, name); 
+			playerCamMenus[client_index].AddItem(num, name); 
 		}
 	}
-	playerMenus[client_index].ExitButton = true;
-	playerMenus[client_index].Display(client_index, MENU_TIME_FOREVER);
+	playerCamMenus[client_index].ExitButton = true;
+	playerCamMenus[client_index].Display(client_index, MENU_TIME_FOREVER);
 }
-
 
 public int MenuHandler_Cameras(Menu menu, MenuAction action, int param1, int params)
 {
