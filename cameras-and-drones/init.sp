@@ -26,7 +26,7 @@ ConVar cvar_totalmax_cam = null;
 ConVar cvar_totalmax_drone = null;
 
 ConVar cvar_pickuprange = null;
-
+ConVar cvar_jumpcooldown = null;
 
 public void CreateConVars(char[] version)
 {
@@ -37,6 +37,7 @@ public void CreateConVars(char[] version)
 	cvar_totalmax_cam = CreateConVar("cd_totalmax_cam", "1", "Set the maximum cameras a player can setup. min = 1, max = 10", FCVAR_NOTIFY, true, 1.0, true, 10.0);
 	cvar_totalmax_drone = CreateConVar("cd_totalmax_drone", "1", "Set the maximum drones a player can setup. min = 1, max = 10", FCVAR_NOTIFY, true, 1.0, true, 10.0);
 	cvar_pickuprange = CreateConVar("cd_pickuprange", "150", "Set the max range at which a player can pickup its drone/cam. 0 = no pickup", FCVAR_NOTIFY, true, 0.0, true, 30000.0);
+	cvar_jumpcooldown = CreateConVar("cd_jumpcooldown", "2", "Set the time players must wait before jmping again with the drone.", FCVAR_NOTIFY, true, 0.0, true, 30000.0);
 	AutoExecConfig(true, "cameras-and-drones");
 }
 

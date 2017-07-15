@@ -24,11 +24,8 @@ char droneJumpSound[] = "items/nvg_off.wav";
 char openDroneSound[] = "weapons/movement3.wav";
 char destroyDroneSound[] = "physics/metal/metal_box_impact_bullet1.wav";
 
-
 char inDroneModel[] = "models/chicken/festive_egg.mdl";
 char droneModel[] = "models/weapons/w_eq_sensorgrenade_thrown.mdl";
-
-
 
 ArrayList dronesList;
 ArrayList dronesModelList;

@@ -50,6 +50,8 @@ char gearWeapon[] = "weapon_tagrenade";
 char dronePhysModel[PLATFORM_MAX_PATH] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl";
 
 bool canDisplayThrowWarning[MAXPLAYERS + 1];
+bool canDroneJump[MAXPLAYERS + 1];
+bool isDroneJumping[MAXPLAYERS + 1];
 
 int collisionOffsets;
 
@@ -140,6 +142,8 @@ public void ResetPlayer(int client_index)
 	}
 	boughtGear[client_index] = 0;
 	canDisplayThrowWarning[client_index] = true;
+	canDroneJump[client_index] = true;
+	isDroneJumping[client_index] = false;
 }
 
 public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
@@ -164,6 +168,8 @@ public void InitVars()
 		fakePlayersListDrones[i] = -1;
 		boughtGear[i] = 0;
 		canDisplayThrowWarning[i] = true;
+		canDroneJump[i] = true;
+		isDroneJumping[i] = false;
 	}
 }
 
@@ -383,15 +389,6 @@ public bool CanThrowGear(int client_index)
 		return false;
 }
 
-public Action Timer_DisplayThrowWarning(Handle timer, any ref)
-{
-	int client_index = EntRefToEntIndex(ref);
-	if (IsValidClient(client_index))
-	{
-		canDisplayThrowWarning[client_index] = true;
-	}
-}
-
 public bool CanThrowCamera(int client_index)
 {
 	int counter;
@@ -565,15 +562,21 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			vel[1] = 0.0;
 			vel[2] = 0.0;
 			isDroneMoving[client_index] = true;
-			MoveDrone(client_index, activeDrone[client_index][0]);
+			if (!isDroneJumping[client_index]) // Prevent moving reset vel while trying to jump
+				MoveDrone(client_index, activeDrone[client_index][0]);
+		}
+		if ((buttons & IN_JUMP) && canDroneJump[client_index])
+		{
+			canDroneJump[client_index] = false;
+			isDroneJumping[client_index] = true;
+			JumpDrone(client_index, activeDrone[client_index][0]);
+			CreateTimer(0.1, Timer_IsJumping, client_index);
+			CreateTimer(cvar_jumpcooldown.FloatValue, Timer_CanJump, client_index);
 		}
 		if (buttons & IN_SPEED)
 			isDroneMoving[client_index] = true;
 		else if (!(buttons & IN_FORWARD))
 			isDroneMoving[client_index] = false;
-		
-		if (buttons & IN_JUMP)
-			JumpDrone(client_index, activeDrone[client_index][0]);
 		
 		if ((buttons & IN_BACK) || (buttons & IN_MOVELEFT) || (buttons & IN_MOVERIGHT)) // Block non-forward movement
 		{
@@ -593,6 +596,33 @@ public void SetViewModel(int client_index, bool enabled)
 	else
 		EntEffects |= 32; // Set to Nodraw
 	SetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects", EntEffects);
+}
+
+public Action Timer_DisplayThrowWarning(Handle timer, any ref)
+{
+	int client_index = EntRefToEntIndex(ref);
+	if (IsValidClient(client_index))
+	{
+		canDisplayThrowWarning[client_index] = true;
+	}
+}
+
+public Action Timer_CanJump(Handle timer, any ref)
+{
+	int client_index = EntRefToEntIndex(ref);
+	if (IsValidClient(client_index))
+	{
+		canDroneJump[client_index] = true;
+	}
+}
+
+public Action Timer_IsJumping(Handle timer, any ref)
+{
+	int client_index = EntRefToEntIndex(ref);
+	if (IsValidClient(client_index))
+	{
+		isDroneJumping[client_index] = false;
+	}
 }
 
 public Action Hook_SetTransmitPlayer(int entity_index, int client_index) // hide player only if using cam/drone
