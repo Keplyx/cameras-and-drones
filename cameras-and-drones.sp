@@ -235,18 +235,18 @@ public Action StartTouchGrenade(int entity1, int entity2)
 		GetEntPropString(entity1, Prop_Data, "m_ModelName", modelName, sizeof(modelName));
 		RemoveEdict(entity1);
 		
-		if (GetClientTeam(owner) == cvar_camteam.IntValue)
+		if (IsClientTeamCameras(owner))
 			CreateCamera(owner, pos, rot, modelName);
-		else if (GetClientTeam(owner) > 1)
+		else if (IsClientTeamDrones(owner))
 			CreateDrone(owner, pos, rot, dronePhysModel);
 	}
 }
 
 public Action BuyGear(int client_index, int args) //Set player skin if authorized
 {
-	if (GetClientTeam(client_index) == cvar_camteam.IntValue)
+	if (IsClientTeamCameras(client_index))
 		BuyCamera(client_index);
-	else if (GetClientTeam(client_index) > 1)
+	else if (IsClientTeamDrones(client_index))
 		BuyDrone(client_index);
 	
 	return Plugin_Handled;
@@ -292,9 +292,9 @@ public void BuyDrone(int client_index)
 
 public Action OpenGear(int client_index, int args) //Set player skin if authorized
 {
-	if (GetClientTeam(client_index) == cvar_camteam.IntValue)
+	if (IsClientTeamCameras(client_index))
 		OpenCamera(client_index);
-	else if (GetClientTeam(client_index) > 1)
+	else if (IsClientTeamDrones(client_index))
 		OpenDrone(client_index);
 	
 	return Plugin_Handled;
@@ -381,9 +381,9 @@ public void OpenDrone(int client_index)
 
 public bool CanThrowGear(int client_index)
 {
-	if (GetClientTeam(client_index) == cvar_camteam.IntValue)
+	if (IsClientTeamCameras(client_index))
 		return CanThrowCamera(client_index);
-	else if (GetClientTeam(client_index) > 1)
+	else if (IsClientTeamDrones(client_index))
 		return CanThrowDrone(client_index);
 	else
 		return false;
@@ -440,14 +440,14 @@ public void PickupGear(int client_index, int i)
 	float pos[3], gearPos[3];
 	GetClientEyePosition(client_index, pos);
 	
-	if (GetClientTeam(client_index) == cvar_camteam.IntValue)
+	if (IsClientTeamCameras(client_index))
 	{
 		int cam = camerasList.Get(i);
 		GetEntPropVector(cam, Prop_Send, "m_vecOrigin", gearPos);
 		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue)
 			PickupCamera(client_index, cam);
 	}
-	else if (GetClientTeam(client_index) > 1)
+	else if (IsClientTeamDrones(client_index))
 	{
 		int drone = dronesList.Get(i);
 		GetEntPropVector(drone, Prop_Send, "m_vecOrigin", gearPos);
@@ -472,9 +472,9 @@ public void PickupDrone(int client_index, int cam)
 
 public void CloseGear(int client_index)
 {
-	if (GetClientTeam(client_index) == cvar_camteam.IntValue)
+	if (IsClientTeamCameras(client_index))
 		CloseCamera(client_index);
-	else if (GetClientTeam(client_index) > 1)
+	else if (IsClientTeamDrones(client_index))
 		CloseDrone(client_index);
 }
 public void CloseCamera(int client_index)
@@ -779,6 +779,16 @@ public bool IsClientInCam(int client_index)
 public bool IsClientInDrone(int client_index)
 {
 	return activeDrone[client_index][0] > MAXPLAYERS;
+}
+
+public bool IsClientTeamCameras(int client_index)
+{
+	return GetClientTeam(client_index) > 1 && (GetClientTeam(client_index) == cvar_gearteam.IntValue || cvar_gearteam.IntValue == 1);
+}
+
+public bool IsClientTeamDrones(int client_index)
+{
+	return GetClientTeam(client_index) > 1 && (GetClientTeam(client_index) != cvar_gearteam.IntValue || cvar_gearteam.IntValue == 0);
 }
 
 stock bool IsValidClient(int client)
