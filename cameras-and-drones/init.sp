@@ -49,14 +49,3 @@ public void RegisterCommands()
 	RegConsoleCmd("cd_buy", BuyGear, "Buy team gear");
 	RegConsoleCmd("cd_cam", OpenGear, "Open cameras");
 }
-
-public void IntiCvars()
-{
-	//Enable hiding of players
-	SetConVarBool(FindConVar("sv_disable_immunity_alpha"), true);
-}
-
-public void ResetCvars()
-{
-	ResetConVar(FindConVar("sv_disable_immunity_alpha"));
-}

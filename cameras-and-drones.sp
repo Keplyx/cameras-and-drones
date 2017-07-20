@@ -74,7 +74,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	InitVars();
 	AddNormalSoundHook(NormalSoundHook);
 	HookEvent("round_start", Event_RoundStart);
 	HookEvent("player_spawn", Event_PlayerSpawn);
@@ -115,7 +114,7 @@ public void OnMapStart()
 
 public void OnConfigsExecuted()
 {
-	IntiCvars();
+	// Nothing yet
 }
 
 public void OnClientPostAdminCheck(int client_index)

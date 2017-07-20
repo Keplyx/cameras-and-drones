@@ -22,7 +22,7 @@
 char openCamSound[] = "weapons/movement3.wav";
 char destroyCamSound[] = "physics/metal/metal_box_impact_bullet1.wav";
 
-char InCamModel[] = "models/chicken/festive_egg.mdl";
+char InCamModel[] = "models/inventory_items/collectible_pin_victory.mdl";
 
 ArrayList camerasList;
 ArrayList camOwnersList;
