@@ -183,7 +183,7 @@ public void DestroyCamera(int cam)
 {
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
-		if (activeCam[i][0] == cam)
+		if (activeCam[i][0] == cam && IsValidClient(i))
 		{
 			CloseCamera(i);
 		}

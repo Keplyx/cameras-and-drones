@@ -85,7 +85,8 @@ public int MenuHandler_Drones(Menu menu, MenuAction action, int param1, int para
 	{
 		if (params == MenuCancel_Exit)
 		{
-			ExitDrone(param1);
+			if (IsValidEntity(param1))
+				ExitDrone(param1);
 		}
 	}
 	else if (action == MenuAction_End)

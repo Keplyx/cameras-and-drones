@@ -129,16 +129,23 @@ public void OnClientDisconnect(int client_index)
 
 public void ResetPlayer(int client_index)
 {
-	for (int i = 0; i < dronesList.Length; i++)
+	if (dronesList != null)
 	{
-		if (dronesOwnerList.Get(i) == client_index)
-			DestroyDrone(dronesList.Get(i));
+		for (int i = 0; i < dronesList.Length; i++)
+		{
+			if (dronesOwnerList.Get(i) == client_index)
+				DestroyDrone(dronesList.Get(i));
+		}
 	}
-	for (int i = 0; i < camerasList.Length; i++)
+	if (camerasList != null)
 	{
-		if (camOwnersList.Get(i) == client_index)
-			DestroyCamera(camerasList.Get(i));
+		for (int i = 0; i < camerasList.Length; i++)
+		{
+			if (camOwnersList.Get(i) == client_index)
+				DestroyCamera(camerasList.Get(i));
+		}
 	}
+
 	boughtGear[client_index] = 0;
 	canDisplayThrowWarning[client_index] = true;
 	canDroneJump[client_index] = true;
@@ -626,7 +633,7 @@ public Action Timer_IsJumping(Handle timer, any ref)
 
 public Action Hook_SetTransmitPlayer(int entity_index, int client_index) // hide player only if using cam/drone
 {
-	if (client_index != entity_index && IsValidClient(entity_index) && IsClientInGear(client_index))
+	if (client_index != entity_index && IsValidClient(entity_index) && IsClientInGear(entity_index))
 		return Plugin_Handled;
 	
 	return Plugin_Continue;

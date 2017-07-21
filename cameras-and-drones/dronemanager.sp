@@ -137,6 +137,9 @@ public void Hook_PostThinkDrone(int client_index)
 	LowerDroneView(client_index);
 	HideHudGuns(client_index);
 	SetViewModel(client_index, false);
+	float rot[3];
+	GetClientEyeAngles(client_index, rot);
+	TeleportEntity(activeDrone[client_index][1], NULL_VECTOR, rot, NULL_VECTOR); // Model follows player rotation
 	
 	if (groundDistance > (droneHoverHeight + 1.0))
 	{
@@ -146,7 +149,6 @@ public void Hook_PostThinkDrone(int client_index)
 	isDroneGrounded[client_index] = true;
 	if (!isDroneMoving[client_index])
 		return;
-	
 	
 	float pos[3], nullRot[3];
 	GetEntPropVector(drone, Prop_Send, "m_vecOrigin", pos);
@@ -218,11 +220,9 @@ public void TpToDrone(int client_index, int drone)
 	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
 	// Set pos
 	SetVariantString("!activator"); AcceptEntityInput(client_index, "SetParent", drone, client_index, 0);
-	SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", client_index, activeDrone[client_index][1], 0);
 	float pos[3], rot[3];
-	TeleportEntity(client_index, pos, rot, NULL_VECTOR);
-	rot[1] = 90.0;
-	TeleportEntity(activeDrone[client_index][1] , pos, rot, NULL_VECTOR);
+	GetEntPropVector(activeDrone[client_index][1], Prop_Send, "m_angRotation", rot);
+	TeleportEntity(client_index, pos, rot, NULL_VECTOR); // Get old rotation back
 	// Set collisions
 	oldCollisionValueD[client_index] = GetEntData(client_index, GetCollOffset(), 1);
 	SetEntData(client_index, GetCollOffset(), 2, 4, true);
@@ -246,9 +246,8 @@ public void ExitDrone(int client_index)
 	SDKUnhook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
 	// Set pos
 	AcceptEntityInput(client_index, "SetParent");
-	SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", activeDrone[client_index][0], activeDrone[client_index][1], 0);
 	float pos[3], rot[3];
-	TeleportEntity(activeDrone[client_index][1], pos, rot, NULL_VECTOR);
+	TeleportEntity(activeDrone[client_index][1], pos, rot, NULL_VECTOR); // Reset drone rot
 	GetEntPropVector(fakePlayersListDrones[client_index], Prop_Send, "m_vecOrigin", pos);
 	GetEntPropVector(fakePlayersListDrones[client_index], Prop_Send, "m_angRotation", rot);
 	TeleportEntity(client_index, pos, rot, NULL_VECTOR);
@@ -269,7 +268,7 @@ public void DestroyDrone(int drone)
 {
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
-		if (activeDrone[i][0] == drone)
+		if (activeDrone[i][0] == drone && IsValidClient(i))
 		{
 			CloseDrone(i);
 		}

@@ -67,7 +67,8 @@ public int MenuHandler_Cameras(Menu menu, MenuAction action, int param1, int par
 		if (params == MenuCancel_Exit)
 		{
 			activeCam[param1][0] = -1;
-			ExitCam(param1);
+			if (IsValidEntity(param1))
+				ExitCam(param1);
 		}
 	}
 	else if (action == MenuAction_End)
