@@ -219,6 +219,7 @@ public void TpToDrone(int client_index, int drone)
 	// Hooks
 	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
+	SDKHook(client_index, SDKHook_OnTakeDamage, Hook_TakeDamagePlayer);
 	// Set pos
 	SetVariantString("!activator"); AcceptEntityInput(client_index, "SetParent", drone, client_index, 0);
 	float pos[3], rot[3];
@@ -245,6 +246,7 @@ public void ExitDrone(int client_index)
 	// Hooks
 	SDKUnhook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKUnhook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
+	SDKUnhook(client_index, SDKHook_OnTakeDamage, Hook_TakeDamagePlayer);
 	// Set pos
 	AcceptEntityInput(client_index, "SetParent");
 	float pos[3], rot[3];

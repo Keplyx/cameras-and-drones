@@ -166,6 +166,7 @@ public void TpToCam(int client_index, int cam)
 	// Hooks
 	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkCam);
+	SDKHook(client_index, SDKHook_OnTakeDamage, Hook_TakeDamagePlayer);
 	// Set pos
 	SetVariantString("!activator"); AcceptEntityInput(client_index, "SetParent", cam, client_index, 0);
 	float pos[3], rot[3];
@@ -196,6 +197,7 @@ public void ExitCam(int client_index)
 	// Hooks
 	SDKUnhook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKUnhook(client_index, SDKHook_PostThink, Hook_PostThinkCam);
+	SDKUnhook(client_index, SDKHook_OnTakeDamage, Hook_TakeDamagePlayer);
 	// Set pos
 	AcceptEntityInput(client_index, "SetParent");
 	float pos[3], rot[3];

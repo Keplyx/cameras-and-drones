@@ -716,6 +716,11 @@ public Action Hook_TakeDamageGear(int victim, int &attacker, int &inflictor, flo
 	return Plugin_Continue;
 }
 
+public Action Hook_TakeDamagePlayer(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+	return Plugin_Handled;
+}
+
 public Action CommandDrop(int client_index, const char[] command, int argc)
 {
 	if (IsClientInGear(client_index))
