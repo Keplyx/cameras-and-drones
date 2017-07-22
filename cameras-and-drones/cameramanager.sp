@@ -121,11 +121,18 @@ public void CreateFlash(int client_index, int cam)
 
 public void DestroyFlash(int client_index)
 {
-	if (IsValidEntity(activeCam[client_index][2]))
+	if (!IsValidEntity(activeCam[client_index][2]))
+		return;
+	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
-		RemoveEdict(activeCam[client_index][2])
-		activeCam[client_index][2] = -1;
+		if (i != client_index && activeCam[i][2] == activeCam[client_index][2])
+		{
+			activeCam[client_index][2] = -1;
+			return; // Prevent from deleting other player flash
+		}
 	}
+	RemoveEdict(activeCam[client_index][2])
+	activeCam[client_index][2] = -1;
 }
 
 public void Hook_PostThinkCam(int client_index)
@@ -200,10 +207,10 @@ public void ExitCam(int client_index)
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 0);
 	// Remove props
 	RemoveEdict(fakePlayersListCamera[client_index]);
+	DestroyFlash(client_index);
 	activeCam[client_index][0] = -1;
 	activeCam[client_index][1] = -1;
 	fakePlayersListCamera[client_index] = -1;
-	DestroyFlash(client_index);
 	// Sound!
 	EmitSoundToClient(client_index, openCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 }

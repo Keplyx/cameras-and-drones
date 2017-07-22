@@ -243,12 +243,43 @@ public Action StartTouchGrenade(int entity1, int entity2)
 		GetEntPropVector(entity1, Prop_Send, "m_vecOrigin", pos);
 		GetEntPropVector(entity1, Prop_Send, "m_angRotation", rot);
 		int owner = GetEntPropEnt(entity1, Prop_Send, "m_hOwnerEntity");
-		RemoveEdict(entity1);
 		
+		if (IsValidClient(entity2))
+		{
+			PreventGearActivation(owner, entity1);
+			return;
+		}
+		for (int i = 1; i <= MAXPLAYERS; i++)
+		{
+			if (entity2 == fakePlayersListCamera[i] || entity2 == fakePlayersListDrones[i])
+			{
+				PreventGearActivation(owner, entity1);
+				return;
+			}
+		}
+		
+		RemoveEdict(entity1);
 		if (IsClientTeamCameras(owner))
 			CreateCamera(owner, pos, rot);
 		else if (IsClientTeamDrones(owner))
 			CreateDrone(owner, pos, rot);
+	}
+}
+
+public void PreventGearActivation(int client_index, int entity_index) // Prevent gear acivation if gear hits player
+{
+	float pos[3];
+	GetEntPropVector(entity_index, Prop_Send, "m_vecOrigin", pos);
+	RemoveEdict(entity_index);
+	if (IsClientTeamCameras(client_index))
+	{
+		EmitSoundToAll(destroyDroneSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
+		PrintHintText(client_index, "<font color='#ff0000' size='25'>Your camera touched a player and was destroyed</font>");
+	}
+	else if (IsClientTeamDrones(client_index))
+	{
+		EmitSoundToAll(destroyCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
+		PrintHintText(client_index, "<font color='#ff0000' size='25'>Your drone touched a player and was destroyed</font>");
 	}
 }
 
