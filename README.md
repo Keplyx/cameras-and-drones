@@ -20,6 +20,7 @@ Simply download **[cameras-and-drones.smx](https://github.com/Keplyx/cameras-and
    * Drones makes noises when used
    * Can limit the number of drones/cameras per player
    * Can choose which team can use drones/cameras
+   * Can choose if teammates are allowed to break your drones/cameras
    
    
 
