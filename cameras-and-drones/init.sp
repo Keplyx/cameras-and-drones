@@ -28,9 +28,11 @@ ConVar cvar_totalmax_drone = null;
 ConVar cvar_pickuprange = null;
 ConVar cvar_jumpcooldown = null;
 
+ConVar cvar_tkprotect = null;
+
 public void CreateConVars(char[] version)
 {
-	CreateConVar("cd_version", version, "Cameras and Drones", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
+	CreateConVar("cameras-and-drones_version", version, "Cameras and Drones Version", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
 	cvar_gearteam = CreateConVar("cd_gearteam", "3", "Set which team can use cameras. The oposite will have drones. 0 = All drones, 1 = All cameras, 2 = T cameras, 3 = CT cameras", FCVAR_NOTIFY);
 	
 	cvar_camprice = CreateConVar("cd_camprice", "800", "Set cameras price. min = 0, max = 30000", FCVAR_NOTIFY, true, 0.0, true, 30000.0);
@@ -41,6 +43,8 @@ public void CreateConVars(char[] version)
 	
 	cvar_pickuprange = CreateConVar("cd_pickuprange", "150", "Set the max range at which a player can pickup its drone/cam. 0 = no pickup", FCVAR_NOTIFY, true, 0.0, true, 30000.0);
 	cvar_jumpcooldown = CreateConVar("cd_jumpcooldown", "1", "Set the time players must wait before jmping again with the drone.", FCVAR_NOTIFY, true, 0.0, true, 30000.0);
+	
+	cvar_tkprotect = CreateConVar("cd_tkprotect", "1", "Set whether teammates can break gear. 0 = no protection, 1 = protected", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	AutoExecConfig(true, "cameras-and-drones");
 }
 

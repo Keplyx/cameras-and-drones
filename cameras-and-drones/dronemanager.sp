@@ -74,7 +74,7 @@ public void CreateDrone(int client_index, float pos[3], float rot[3])
 		ActivateEntity(drone);
 		TeleportEntity(drone, pos, rot, NULL_VECTOR);
 		
-		SDKHook(drone, SDKHook_OnTakeDamage, Hook_TakeDamageDrone);
+		SDKHook(drone, SDKHook_OnTakeDamage, Hook_TakeDamageGear);
 		SetEntityRenderMode(drone, RENDER_NONE);
 		CreateDroneModel(client_index, drone);
 	}
@@ -267,6 +267,9 @@ public void ExitDrone(int client_index)
 
 public void DestroyDrone(int drone)
 {
+	float pos[3];
+	GetEntPropVector(drone, Prop_Send, "m_vecOrigin", pos);
+	EmitSoundToAll(destroyDroneSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
 		if (activeDrone[i][0] == drone && IsValidClient(i))
@@ -281,12 +284,4 @@ public void DestroyDrone(int drone)
 		RemoveEdict(dronesModelList.Get(dronesList.FindValue(drone)));
 	
 	RemoveDroneFromList(drone);
-}
-
-public Action Hook_TakeDamageDrone(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
-{
-	float pos[3];
-	GetEntPropVector(victim, Prop_Send, "m_vecOrigin", pos);
-	EmitSoundToAll(destroyDroneSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
-	DestroyDrone(victim);
 }

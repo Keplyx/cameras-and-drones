@@ -697,6 +697,25 @@ public Action Hook_WeaponCanUse(int client_index, int weapon_index)
 	return Plugin_Continue;
 }
 
+public Action Hook_TakeDamageGear(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+	int client_index;
+	if (camerasList.FindValue(victim) != -1)
+		client_index = camOwnersList.Get(camerasList.FindValue(victim));
+	else if (dronesList.FindValue(victim) != -1)
+		client_index = dronesOwnerList.Get(dronesList.FindValue(victim));
+	
+	if (cvar_tkprotect.BoolValue && GetClientTeam(client_index) == GetClientTeam(inflictor) && client_index != inflictor)
+		return Plugin_Handled;
+	
+	if (IsClientTeamCameras(client_index))
+		DestroyCamera(victim);
+	else if (IsClientTeamDrones(client_index))
+		DestroyDrone(victim);
+	
+	return Plugin_Continue;
+}
+
 public Action CommandDrop(int client_index, const char[] command, int argc)
 {
 	if (IsClientInGear(client_index))
