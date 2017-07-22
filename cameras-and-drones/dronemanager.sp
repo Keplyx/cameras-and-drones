@@ -142,19 +142,16 @@ public void Hook_PostThinkDrone(int client_index)
 	GetClientEyeAngles(client_index, rot);
 	TeleportEntity(activeDrone[client_index][1], NULL_VECTOR, rot, NULL_VECTOR); // Model follows player rotation
 	
-	if (groundDistance > (droneHoverHeight + 1.0))
-	{
-		isDroneGrounded[client_index] = false;
-		return;
-	}
-	isDroneGrounded[client_index] = true;
-	if (!isDroneMoving[client_index])
+	isDroneGrounded[client_index] = !(groundDistance > (droneHoverHeight + 1.0));
+	if (!isDroneMoving[client_index] || !isDroneGrounded[client_index])
 		return;
 	
-	float pos[3], nullRot[3];
+	float pos[3], nullRot[3], vel[3];
 	GetEntPropVector(drone, Prop_Send, "m_vecOrigin", pos);
+	GetEntPropVector(drone, Prop_Data, "m_vecVelocity", vel);
 	pos[2] += droneHoverHeight - groundDistance;
-	TeleportEntity(drone, pos, nullRot, NULL_VECTOR);
+	if (vel[2] >= 0.0)
+		TeleportEntity(drone, pos, nullRot, NULL_VECTOR);
 }
 
 public void LowerDroneView(int client_index)

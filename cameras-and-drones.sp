@@ -699,12 +699,13 @@ public Action Hook_WeaponCanUse(int client_index, int weapon_index)
 
 public Action Hook_TakeDamageGear(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	int client_index;
+	int client_index = -1;
 	if (camerasList.FindValue(victim) != -1)
 		client_index = camOwnersList.Get(camerasList.FindValue(victim));
 	else if (dronesList.FindValue(victim) != -1)
 		client_index = dronesOwnerList.Get(dronesList.FindValue(victim));
-	
+	if (!IsValidClient(client_index))
+		return Plugin_Handled;
 	if (cvar_tkprotect.BoolValue && GetClientTeam(client_index) == GetClientTeam(inflictor) && client_index != inflictor)
 		return Plugin_Handled;
 	
