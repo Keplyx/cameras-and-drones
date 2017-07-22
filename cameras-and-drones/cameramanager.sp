@@ -71,7 +71,7 @@ public void CreateCamera(int client_index, float pos[3], float rot[3])
 
 public void CreateCameraModel(int client_index, int cam)
 {
-	int model = CreateEntityByName("prop_dynamic_override"); // replace by tagrenade_projectile when using it (makes a flash)
+	int model = CreateEntityByName("prop_dynamic_override");
 	if (IsValidEntity(model)) {
 		SetEntityModel(model, camModel);
 		DispatchKeyValue(model, "solid", "0");
@@ -87,7 +87,7 @@ public void CreateCameraModel(int client_index, int cam)
 	}
 }
 
-public void CreateFlash(int client_index, int cam) // Will always stop bullets but won't fire OnTakeDamage event even if set to solid
+public void CreateFlash(int client_index, int cam)
 {
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
@@ -97,23 +97,26 @@ public void CreateFlash(int client_index, int cam) // Will always stop bullets b
 			return; // Prevent from creating multiple red flashes
 		}
 	}
-//	int flash = CreateEntityByName("tagrenade_projectile");
-//	if (IsValidEntity(flash)) {
-//		activeCam[client_index][2] = flash;
-//		SetEntityModel(flash, camModel);
-//		//DispatchKeyValue(flash, "solid", "6"); 
-//		DispatchSpawn(flash);
-//		ActivateEntity(flash);
-//		
-//		SetEntityMoveType(flash, MOVETYPE_NONE);
-//		
-//		SetVariantString("!activator"); AcceptEntityInput(flash, "SetParent", cam, flash, 0);
-//		float pos[3], rot[3];
-//		pos[2] += 20.0;
-//		TeleportEntity(flash, pos, rot, NULL_VECTOR);
-//		
-//		SDKHook(flash, SDKHook_SetTransmit, Hook_SetTransmitGear);
-//	}
+	int flash = CreateEntityByName("env_sprite");
+	if (IsValidEntity(flash))
+	{
+		activeCam[client_index][2] = flash;
+		DispatchKeyValue(flash, "spawnflags", "1");
+		DispatchKeyValue(flash, "scale", "0.3");
+		DispatchKeyValue(flash, "rendercolor", "255 0 0");
+		DispatchKeyValue(flash, "rendermode", "5"); // Additive
+		DispatchKeyValue(flash, "renderfx", "13"); // Fast Flicker
+		DispatchKeyValue(flash, "model", "sprites/glow01.vmt");
+		
+		float pos[3], rot[3];
+		GetEntPropVector(cam, Prop_Send, "m_vecOrigin", pos);
+		TeleportEntity(flash, pos, rot, NULL_VECTOR);
+		
+		DispatchSpawn(flash);
+		ActivateEntity(flash);
+		
+		SDKHook(flash, SDKHook_SetTransmit, Hook_SetTransmitGear);
+	}
 }
 
 public void DestroyFlash(int client_index)
