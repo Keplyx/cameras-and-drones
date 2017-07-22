@@ -38,7 +38,6 @@ public void Menu_Cameras(int client_index, int args)
 			Format(name, sizeof(name), "Active: %s's Camera", ownerName);
 			Format(num, sizeof(num), "%i", -1);
 			playerCamMenus[client_index].AddItem(num, name, ITEMDRAW_DISABLED);
-			activeCam[client_index][0] = camerasList.Get(i);
 		}
 		else
 		{
@@ -66,7 +65,6 @@ public int MenuHandler_Cameras(Menu menu, MenuAction action, int param1, int par
 	{
 		if (params == MenuCancel_Exit)
 		{
-			activeCam[param1][0] = -1;
 			if (IsValidEntity(param1))
 				ExitCam(param1);
 		}

@@ -24,8 +24,9 @@ char droneJumpSound[] = "items/nvg_off.wav";
 char openDroneSound[] = "weapons/movement3.wav";
 char destroyDroneSound[] = "physics/metal/metal_box_impact_bullet1.wav";
 
-char inDroneModel[] = "models/inventory_items/collectible_pin_victory.mdl";
+char inDroneModel[] = "models/chicken/festive_egg.mdl"; // must have hitbox or it will use the default player one
 char droneModel[] = "models/weapons/w_eq_sensorgrenade_thrown.mdl";
+char dronePhysModel[] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl";
 
 ArrayList dronesList;
 ArrayList dronesModelList;
@@ -60,12 +61,12 @@ public void RemoveDroneFromList(int drone)
 	dronesOwnerList.Erase(i);
 }
 
-public void CreateDrone(int client_index, float pos[3], float rot[3], char modelName[PLATFORM_MAX_PATH])
+public void CreateDrone(int client_index, float pos[3], float rot[3])
 {
 	// Can be moved, must have a larger hitbox than the drone model (no stuck, easier pickup, easier target)
 	int drone = CreateEntityByName("prop_physics_override"); 
 	if (IsValidEntity(drone)) {
-		SetEntityModel(drone, modelName);
+		SetEntityModel(drone, dronePhysModel);
 		DispatchKeyValue(drone, "solid", "6");
 		//DispatchKeyValue(drone, "overridescript", "mass,100.0,inertia,1.0,damping,1.0,rotdamping ,1.0"); // overwrite params
 		DispatchKeyValue(drone, "overridescript", "rotdamping,1000.0"); // Prevent drone rotation
@@ -287,13 +288,5 @@ public Action Hook_TakeDamageDrone(int victim, int &attacker, int &inflictor, fl
 	float pos[3];
 	GetEntPropVector(victim, Prop_Send, "m_vecOrigin", pos);
 	EmitSoundToAll(destroyDroneSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
-	for (int i = 1; i <= MAXPLAYERS; i++)
-	{
-		if (activeDrone[i][0] == victim || activeDrone[i][1] == victim)
-		{
-			DestroyDrone(activeDrone[i][0]);
-			return;
-		}
-	}
 	DestroyDrone(victim);
 }

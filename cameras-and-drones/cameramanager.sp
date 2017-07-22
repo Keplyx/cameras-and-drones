@@ -19,21 +19,26 @@
 #include <sdktools>
 #include <sdkhooks>
 
+// SOUNDS
 char openCamSound[] = "weapons/movement3.wav";
 char destroyCamSound[] = "physics/metal/metal_box_impact_bullet1.wav";
-
-char InCamModel[] = "models/inventory_items/collectible_pin_victory.mdl";
-
+// MODELS
+char InCamModel[] = "models/chicken/festive_egg.mdl"; // must have hitbox or it will use the default player one
+char camModel[] = "models/weapons/w_eq_sensorgrenade_thrown.mdl";
+char camPhysModel[] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl"; // Must surround cam
+// LISTS
 ArrayList camerasList;
+ArrayList camerasModelList;
 ArrayList camOwnersList;
-int activeCam[MAXPLAYERS + 1][2];
+int activeCam[MAXPLAYERS + 1][3]; // 0: phys, 1: model, 2: flash
 int fakePlayersListCamera[MAXPLAYERS + 1];
 
 int oldCollisionValue[MAXPLAYERS + 1];
 
-public void AddCamera(int cam, int client_index)
+public void AddCamera(int cam, int model, int client_index)
 {
 	camerasList.Push(cam);
+	camerasModelList.Push(model);
 	camOwnersList.Push(client_index);
 }
 
@@ -43,71 +48,87 @@ public void RemoveCameraFromList(int cam)
 	if (i < 0)
 		return;
 	camerasList.Erase(i);
+	camerasModelList.Erase(i);
 	camOwnersList.Erase(i);
 }
 
-public void CreateCamera(int client_index, float pos[3], float rot[3], char modelName[PLATFORM_MAX_PATH])
+public void CreateCamera(int client_index, float pos[3], float rot[3])
 {
-	int cam = CreateEntityByName("prop_dynamic_override"); // replace by tagrenade_projectile when using it (makes a flash)
+	int cam = CreateEntityByName("prop_dynamic_override");
 	if (IsValidEntity(cam)) {
-		SetEntityModel(cam, modelName);
+		SetEntityModel(cam, camPhysModel);
 		DispatchKeyValue(cam, "solid", "6");
 		DispatchSpawn(cam);
+		ActivateEntity(cam);
+		
 		TeleportEntity(cam, pos, rot, NULL_VECTOR);
 		
 		SDKHook(cam, SDKHook_OnTakeDamage, Hook_TakeDamageCam);
-		SDKHook(cam, SDKHook_SetTransmit, Hook_SetTransmitGear);
-		AddCamera(cam, client_index);
+		SetEntityRenderMode(cam, RENDER_NONE);
+		CreateCameraModel(client_index, cam);
 	}
 }
 
-public void CreateFlash(int client_index, int cam)
+public void CreateCameraModel(int client_index, int cam)
+{
+	int model = CreateEntityByName("prop_dynamic_override"); // replace by tagrenade_projectile when using it (makes a flash)
+	if (IsValidEntity(model)) {
+		SetEntityModel(model, camModel);
+		DispatchKeyValue(model, "solid", "0");
+		DispatchSpawn(model);
+		ActivateEntity(model);
+		
+		SetVariantString("!activator"); AcceptEntityInput(model, "SetParent", cam, model, 0);
+		float pos[3], rot[3];
+		TeleportEntity(model, pos, rot, NULL_VECTOR);
+		
+		SDKHook(model, SDKHook_SetTransmit, Hook_SetTransmitGear);
+		AddCamera(cam, model, client_index);
+	}
+}
+
+public void CreateFlash(int client_index, int cam) // Will always stop bullets but won't fire OnTakeDamage event even if set to solid
 {
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
 		if (activeCam[i][0] == cam && i != client_index)
 		{
-			activeCam[client_index][1] = activeCam[i][1];
+			activeCam[client_index][2] = activeCam[i][2];
 			return; // Prevent from creating multiple red flashes
 		}
 	}
-	int flash = CreateEntityByName("tagrenade_projectile");
-	if (IsValidEntity(flash)) {
-		activeCam[client_index][1] = flash;
-		char modelName[PLATFORM_MAX_PATH];
-		GetEntPropString(cam, Prop_Data, "m_ModelName", modelName, sizeof(modelName));
-		SetEntityModel(flash, modelName);
-		DispatchKeyValue(flash, "solid", "0");
-		
-		DispatchSpawn(flash);
-		ActivateEntity(flash);
-		
-		SetEntityMoveType(flash, MOVETYPE_NONE);
-		
-		float pos[3], rot[3];
-		GetEntPropVector(cam, Prop_Send, "m_vecOrigin", pos);
-		GetEntPropVector(cam, Prop_Send, "m_angRotation", rot);
-		
-		TeleportEntity(flash, pos, rot, NULL_VECTOR);
-		
-		SDKHook(flash, SDKHook_OnTakeDamage, Hook_TakeDamageCam);
-		SDKHook(flash, SDKHook_SetTransmit, Hook_SetTransmitGear);
-	}
+//	int flash = CreateEntityByName("tagrenade_projectile");
+//	if (IsValidEntity(flash)) {
+//		activeCam[client_index][2] = flash;
+//		SetEntityModel(flash, camModel);
+//		//DispatchKeyValue(flash, "solid", "6"); 
+//		DispatchSpawn(flash);
+//		ActivateEntity(flash);
+//		
+//		SetEntityMoveType(flash, MOVETYPE_NONE);
+//		
+//		SetVariantString("!activator"); AcceptEntityInput(flash, "SetParent", cam, flash, 0);
+//		float pos[3], rot[3];
+//		pos[2] += 20.0;
+//		TeleportEntity(flash, pos, rot, NULL_VECTOR);
+//		
+//		SDKHook(flash, SDKHook_SetTransmit, Hook_SetTransmitGear);
+//	}
 }
 
 public void DestroyFlash(int client_index)
 {
-	if (IsValidEntity(activeCam[client_index][1]))
+	if (IsValidEntity(activeCam[client_index][2]))
 	{
-		RemoveEdict(activeCam[client_index][1])
-		activeCam[client_index][1] = -1;
+		RemoveEdict(activeCam[client_index][2])
+		activeCam[client_index][2] = -1;
 	}
 }
 
 public void Hook_PostThinkCam(int client_index)
 {
 	if (activeCam[client_index][0] < 0)
-		return
+		return;
 	
 	HideHudGuns(client_index);
 	SetViewModel(client_index, false);
@@ -126,7 +147,7 @@ public void TpToCam(int client_index, int cam)
 	{
 		CreateFakePlayer(client_index, true);
 		EmitSoundToClient(client_index, openCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
-	}	
+	}
 	SetGearScreen(client_index, true);
 	
 	SetEntityModel(client_index, InCamModel); // Set to a small model to prevent collisions/shots
@@ -143,6 +164,9 @@ public void TpToCam(int client_index, int cam)
 	oldCollisionValue[client_index] = GetEntData(client_index, GetCollOffset(), 1);
 	SetEntData(client_index, GetCollOffset(), 2, 4, true);
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 2);
+	
+	activeCam[client_index][0] = cam;
+	activeCam[client_index][1] = camerasModelList.Get(camerasList.FindValue(cam));
 	// Create flashing light
 	DestroyFlash(client_index);
 	CreateFlash(client_index, cam);
@@ -173,6 +197,8 @@ public void ExitCam(int client_index)
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 0);
 	// Remove props
 	RemoveEdict(fakePlayersListCamera[client_index]);
+	activeCam[client_index][0] = -1;
+	activeCam[client_index][1] = -1;
 	fakePlayersListCamera[client_index] = -1;
 	DestroyFlash(client_index);
 	// Sound!
@@ -191,6 +217,8 @@ public void DestroyCamera(int cam)
 	
 	if (IsValidEdict(cam))
 		RemoveEdict(cam);
+	if (IsValidEdict(camerasModelList.Get(camerasList.FindValue(cam))))
+		RemoveEdict(camerasModelList.Get(camerasList.FindValue(cam)));
 	RemoveCameraFromList(cam);
 }
 
@@ -199,13 +227,5 @@ public Action Hook_TakeDamageCam(int victim, int &attacker, int &inflictor, floa
 	float pos[3];
 	GetEntPropVector(victim, Prop_Send, "m_vecOrigin", pos);
 	EmitSoundToAll(destroyCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
-	for (int i = 1; i <= MAXPLAYERS; i++)
-	{
-		if (activeCam[i][0] == victim || activeCam[i][1] == victim)
-		{
-			DestroyCamera(activeCam[i][0]);
-			return;
-		}
-	}
 	DestroyCamera(victim);
 }

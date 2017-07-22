@@ -47,7 +47,6 @@ bool lateload;
 int clientsViewmodels[MAXPLAYERS + 1];
 
 char gearWeapon[] = "weapon_tagrenade";
-char dronePhysModel[PLATFORM_MAX_PATH] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl";
 
 bool canDisplayThrowWarning[MAXPLAYERS + 1];
 bool canDroneJump[MAXPLAYERS + 1];
@@ -104,6 +103,8 @@ public void OnMapStart()
 {
 	PrecacheModel(InCamModel, true);
 	PrecacheModel(dronePhysModel, true);
+	PrecacheModel(camPhysModel, true);
+	
 	PrecacheSound(droneSound, true);
 	PrecacheSound(droneJumpSound, true);
 	PrecacheSound(openDroneSound, true);
@@ -160,16 +161,21 @@ public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast
 public void InitVars()
 {
 	camerasList = new ArrayList();
+	camerasModelList = new ArrayList();
 	camOwnersList = new ArrayList();
 	dronesList = new ArrayList();
 	dronesModelList = new ArrayList();
 	dronesOwnerList = new ArrayList();
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
-		activeCam[i][0] = -1;
-		activeCam[i][1] = -1;
-		activeDrone[i][0] = -1;
-		activeDrone[i][1] = -1;
+		for (int j = 0; j < sizeof(activeCam[]); j++)
+		{
+			activeCam[i][j] = -1;
+		}
+		for (int j = 0; j < sizeof(activeDrone[]); j++)
+		{
+			activeDrone[i][j] = -1;
+		}
 		fakePlayersListCamera[i] = -1;
 		fakePlayersListDrones[i] = -1;
 		boughtGear[i] = 0;
@@ -223,7 +229,7 @@ public void OnProjectileSpawned (int entity_index)
 	// Do not hook flash
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
-		if (activeCam[i][1] == entity_index)
+		if (activeCam[i][2] == entity_index)
 			return;
 	}
 	SDKHook(entity_index, SDKHook_StartTouch, StartTouchGrenade);
@@ -237,14 +243,12 @@ public Action StartTouchGrenade(int entity1, int entity2)
 		GetEntPropVector(entity1, Prop_Send, "m_vecOrigin", pos);
 		GetEntPropVector(entity1, Prop_Send, "m_angRotation", rot);
 		int owner = GetEntPropEnt(entity1, Prop_Send, "m_hOwnerEntity");
-		char modelName[PLATFORM_MAX_PATH];
-		GetEntPropString(entity1, Prop_Data, "m_ModelName", modelName, sizeof(modelName));
 		RemoveEdict(entity1);
 		
 		if (IsClientTeamCameras(owner))
-			CreateCamera(owner, pos, rot, modelName);
+			CreateCamera(owner, pos, rot);
 		else if (IsClientTeamDrones(owner))
-			CreateDrone(owner, pos, rot, dronePhysModel);
+			CreateDrone(owner, pos, rot);
 	}
 }
 
@@ -486,7 +490,6 @@ public void CloseGear(int client_index)
 public void CloseCamera(int client_index)
 {
 	ExitCam(client_index);
-	activeCam[client_index][0] = -1;
 	if (playerCamMenus[client_index] != null)
 	{
 		delete playerCamMenus[client_index];
@@ -496,7 +499,6 @@ public void CloseCamera(int client_index)
 public void CloseDrone(int client_index)
 {
 	ExitDrone(client_index);
-	activeDrone[client_index][0] = -1;
 	if (playerDroneMenus[client_index] != null)
 	{
 		delete playerDroneMenus[client_index];
@@ -641,7 +643,7 @@ public Action Hook_SetTransmitPlayer(int entity_index, int client_index) // hide
 
 public Action Hook_SetTransmitGear(int entity_index, int client_index) // Hide cam/drone only to the one using it
 {
-	if (IsValidClient(client_index) && ((activeCam[client_index][0] == entity_index || activeCam[client_index][1] == entity_index) || (activeDrone[client_index][0] == entity_index || activeDrone[client_index][1] == entity_index)))
+	if (IsValidClient(client_index) && ((activeCam[client_index][1] == entity_index || activeCam[client_index][2] == entity_index) || activeDrone[client_index][1] == entity_index))
 		return Plugin_Handled;
 	
 	return Plugin_Continue;
