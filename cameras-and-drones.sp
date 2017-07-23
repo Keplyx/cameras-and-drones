@@ -94,6 +94,8 @@ public void OnPluginStart()
 		ServerCommand("mp_restartgame 1");
 }
 
+
+
 public int GetCollOffset()
 {
 	return collisionOffsets;
@@ -121,6 +123,23 @@ public void OnConfigsExecuted()
 public void OnClientPostAdminCheck(int client_index)
 {
 	SDKHook(client_index, SDKHook_WeaponCanUse, Hook_WeaponCanUse);
+	int ref = EntIndexToEntRef(client_index);
+	CreateTimer(3.0, Timer_WelcomeMessage, ref);
+}
+
+public Action Timer_WelcomeMessage(Handle timer, any ref)
+{
+	int client_index = EntRefToEntIndex(ref);
+	if (cvar_welcome_message.BoolValue && IsValidClient(client_index))
+	{
+		//Welcome message (white text in red box)
+		CPrintToChat(client_index, "{darkred}********************************");
+		CPrintToChat(client_index, "{darkred}* {default}This server uses {lime}Cameras and Drones");
+		CPrintToChat(client_index, "{darkred}*            {default}Made by {lime}Keplyx");
+		CPrintToChat(client_index, "{darkred}* {default}Use {lime}!cd_help{default} in chat to learn");
+		CPrintToChat(client_index, "{darkred}*                  {default}how to play");
+		CPrintToChat(client_index, "{darkred}********************************");
+	}
 }
 
 public void OnClientDisconnect(int client_index)
@@ -283,7 +302,37 @@ public void PreventGearActivation(int client_index, int entity_index) // Prevent
 	}
 }
 
-public Action BuyGear(int client_index, int args) //Set player skin if authorized
+public Action ShowHelp(int client_index, int args)
+{
+	PrintToConsole(client_index, "|-------------------------------------------------------|");
+	PrintToConsole(client_index, "|----------- CAMERAS AND DRONES HELP -------------------|");
+	PrintToConsole(client_index, "|---- CONSOLE ----|-- IN CHAT --|-- DESCRIPTION --------|");
+	PrintToConsole(client_index, "|cd_buy           |             |Buy team gear          |");
+	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
+	PrintToConsole(client_index, "|cd_cam           |             |Open gear              |");
+	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
+	PrintToConsole(client_index, "|cd_help          |!cd_help     |Display this help      |");
+	PrintToConsole(client_index, "|-------------------------------------------------------|");
+	PrintToConsole(client_index, "");
+	PrintToConsole(client_index, "For a better experience, you should bind cd_buy and cd_cam to a key:");
+	PrintToConsole(client_index, "bind 'KEY' 'COMMAND' | This will bind 'COMMAND to 'KEY'");
+	PrintToConsole(client_index, "EXAMPLE:");
+	PrintToConsole(client_index, "bind \"z\" \"cd_buy\" | This will bind the buy command to the <Z> key");
+	PrintToConsole(client_index, "bind \"x\" \"cd_cam\" | This will bind the open command to the <X> key");
+	
+	CPrintToChat(client_index, "{green}----- CAMERAS AND DRONES HELP -----");
+	CPrintToChat(client_index, "{lime}>>> START");
+	CPrintToChat(client_index, "This plugin is used with the console:");
+	CPrintToChat(client_index, "To enable the console, do the following:");
+	CPrintToChat(client_index, "{yellow}Options -> Game Option -> Enable Developper Console");
+	CPrintToChat(client_index, "To set the toggle key, do the following:");
+	CPrintToChat(client_index, "{yellow}Options -> Keyboard/Mouse -> Toggle Console");
+	CPrintToChat(client_index, "{lime}Open the console for more information");
+	CPrintToChat(client_index, "{green}----- ---------- ---------- -----");
+	return Plugin_Handled;
+}
+
+public Action BuyGear(int client_index, int args)
 {
 	if (IsClientTeamCameras(client_index))
 		BuyCamera(client_index);

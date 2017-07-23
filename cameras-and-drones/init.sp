@@ -18,6 +18,8 @@
 
 #include <convars>
 
+ConVar cvar_welcome_message = null;
+
 ConVar cvar_gearteam = null;
 ConVar cvar_camprice = null;
 ConVar cvar_droneprice = null;
@@ -33,6 +35,8 @@ ConVar cvar_tkprotect = null;
 public void CreateConVars(char[] version)
 {
 	CreateConVar("cameras-and-drones_version", version, "Cameras and Drones Version", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
+	cvar_welcome_message = CreateConVar("cd_welcomemessage", "1", "Displays a welcome message to new players. 0 = no message, 1 = display message", FCVAR_NOTIFY, true, 0.0, true, 1.0); 
+	
 	cvar_gearteam = CreateConVar("cd_gearteam", "3", "Set which team can use cameras. The oposite will have drones. 0 = All drones, 1 = All cameras, 2 = T cameras, 3 = CT cameras", FCVAR_NOTIFY);
 	
 	cvar_camprice = CreateConVar("cd_camprice", "800", "Set cameras price. min = 0, max = 30000", FCVAR_NOTIFY, true, 0.0, true, 30000.0);
@@ -51,5 +55,7 @@ public void CreateConVars(char[] version)
 public void RegisterCommands()
 {
 	RegConsoleCmd("cd_buy", BuyGear, "Buy team gear");
-	RegConsoleCmd("cd_cam", OpenGear, "Open cameras");
+	RegConsoleCmd("cd_cam", OpenGear, "Open gear");
+	RegConsoleCmd("cd_help", ShowHelp, "Show plugin help");
+	RegConsoleCmd("say !cd_help", ShowHelp, "Show plugin help");
 }
