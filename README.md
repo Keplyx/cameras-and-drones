@@ -5,6 +5,7 @@ Use this gear to lay traps to your enemies!
 
 It is similar in some ways to Rainbow six siege.
 
+## [:globe_with_meridians: Watch the video!](https://www.youtube.com/watch?v=SPmatCAUfrI)
 
 ## Installation
 
