@@ -24,23 +24,24 @@
 #include <usermessages>
 #include <csgocolors>
 
-
 #pragma newdecls required;
 
 #include "cameras-and-drones/cameramenus.sp"
 #include "cameras-and-drones/dronemenus.sp"
 #include "cameras-and-drones/init.sp"
 
-
 /*  New in this version
 *	First release!
 *
 */
 
-#define VERSION "0.1.0"
-#define PLUGIN_NAME "Cameras and Drones",
+#define VERSION "1.0.0"
+#define AUTHOR "Keplyx"
+#define PLUGIN_NAME "Cameras and Drones"
 
 #define HIDEHUD_WEAPONSELECTION ( 1<<0 ) // Hide ammo count & weapon selection
+#define FFADE_STAYOUT       0x0008        // ignores the duration, stays faded out until new ScreenFade message received
+#define FFADE_PURGE         0x0010        // Purges all other fades, replacing them with this one
 
 bool lateload;
 
@@ -56,10 +57,14 @@ int collisionOffsets;
 
 int boughtGear[MAXPLAYERS + 1];
 
+/************************************************************************************************************
+ *											INIT
+ ************************************************************************************************************/
+
 public Plugin myinfo =
 {
-	name = PLUGIN_NAME
-	author = "Keplyx",
+	name = PLUGIN_NAME,
+	author = AUTHOR,
 	description = "CSGO plugin adding cameras and drones to the game.",
 	version = VERSION,
 	url = "https://github.com/Keplyx/cameras-and-drones"
@@ -94,8 +99,6 @@ public void OnPluginStart()
 		ServerCommand("mp_restartgame 1");
 }
 
-
-
 public int GetCollOffset()
 {
 	return collisionOffsets;
@@ -125,21 +128,6 @@ public void OnClientPostAdminCheck(int client_index)
 	SDKHook(client_index, SDKHook_WeaponCanUse, Hook_WeaponCanUse);
 	int ref = EntIndexToEntRef(client_index);
 	CreateTimer(3.0, Timer_WelcomeMessage, ref);
-}
-
-public Action Timer_WelcomeMessage(Handle timer, any ref)
-{
-	int client_index = EntRefToEntIndex(ref);
-	if (cvar_welcome_message.BoolValue && IsValidClient(client_index))
-	{
-		//Welcome message (white text in red box)
-		CPrintToChat(client_index, "{darkred}********************************");
-		CPrintToChat(client_index, "{darkred}* {default}This server uses {lime}Cameras and Drones");
-		CPrintToChat(client_index, "{darkred}*            {default}Made by {lime}Keplyx");
-		CPrintToChat(client_index, "{darkred}* {default}Use {lime}!cd_help{default} in chat to learn");
-		CPrintToChat(client_index, "{darkred}*                  {default}how to play");
-		CPrintToChat(client_index, "{darkred}********************************");
-	}
 }
 
 public void OnClientDisconnect(int client_index)
@@ -204,36 +192,15 @@ public void InitVars()
 	}
 }
 
-public Action NormalSoundHook(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags)
-{
-	if (IsValidEntity(entity))
-	{
-		if (StrContains(sample, "sensor") != -1)
-			return Plugin_Stop;
-	}
-	return Plugin_Continue;
-}
-
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client_index = GetClientOfUserId(GetEventInt(event, "userid"));
 	clientsViewmodels[client_index] = GetViewModelIndex(client_index);
 }
 
-public int GetViewModelIndex(int client_index)
-{
-	int index = MAXPLAYERS;
-	while ((index = FindEntityByClassname(index, "predicted_viewmodel")) != -1)
-	{
-		int owner = GetEntPropEnt(index, Prop_Send, "m_hOwner");
-		
-		if (owner != client_index)
-			continue;
-		
-		return index;
-	}
-	return -1;
-}
+/************************************************************************************************************
+ *											Detect Gear
+ ************************************************************************************************************/
 
 public void OnEntityCreated(int entity_index, const char[] classname)
 {
@@ -301,6 +268,10 @@ public void PreventGearActivation(int client_index, int entity_index) // Prevent
 		PrintHintText(client_index, "<font color='#ff0000' size='25'>Your drone touched a player and was destroyed</font>");
 	}
 }
+
+/************************************************************************************************************
+ *											COMMANDS
+ ************************************************************************************************************/
 
 public Action ShowHelp(int client_index, int args)
 {
@@ -469,6 +440,10 @@ public void OpenDrone(int client_index)
 	TpToDrone(client_index, target);
 }
 
+/************************************************************************************************************
+ *											GEAR SPECIFIC METHODS
+ ************************************************************************************************************/
+
 public bool CanThrowGear(int client_index)
 {
 	if (IsClientTeamCameras(client_index))
@@ -585,6 +560,10 @@ public void CloseDrone(int client_index)
 	}
 }
 
+/************************************************************************************************************
+ *											INPUT
+ ************************************************************************************************************/
+
 public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
 {
 	if (!IsPlayerAlive(client_index))
@@ -676,14 +655,23 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 	return Plugin_Changed;
 }
 
-public void SetViewModel(int client_index, bool enabled)
+/************************************************************************************************************
+ *											TIMERS
+ ************************************************************************************************************/
+ 
+public Action Timer_WelcomeMessage(Handle timer, any ref)
 {
-	int EntEffects = GetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects");
-	if (enabled)
-		EntEffects |= ~32;
-	else
-		EntEffects |= 32; // Set to Nodraw
-	SetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects", EntEffects);
+	int client_index = EntRefToEntIndex(ref);
+	if (cvar_welcome_message.BoolValue && IsValidClient(client_index))
+	{
+		//Welcome message (white text in red box)
+		CPrintToChat(client_index, "{darkred}********************************");
+		CPrintToChat(client_index, "{darkred}* {default}This server uses {lime}%s", PLUGIN_NAME);
+		CPrintToChat(client_index, "{darkred}*            {default}Made by {lime}%s", AUTHOR);
+		CPrintToChat(client_index, "{darkred}* {default}Use {lime}!cd_help{default} in chat to learn");
+		CPrintToChat(client_index, "{darkred}*                  {default}how to play");
+		CPrintToChat(client_index, "{darkred}********************************");
+	}
 }
 
 public Action Timer_DisplayThrowWarning(Handle timer, any ref)
@@ -711,6 +699,20 @@ public Action Timer_IsJumping(Handle timer, any ref)
 	{
 		isDroneJumping[client_index] = false;
 	}
+}
+
+/************************************************************************************************************
+ *											HOOKS
+ ************************************************************************************************************/
+ 
+public Action NormalSoundHook(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags)
+{
+	if (IsValidEntity(entity))
+	{
+		if (StrContains(sample, "sensor") != -1)
+			return Plugin_Stop;
+	}
+	return Plugin_Continue;
 }
 
 public Action Hook_SetTransmitPlayer(int entity_index, int client_index) // hide player only if using cam/drone
@@ -792,6 +794,10 @@ public Action CommandJoinTeam(int client_index, const char[] command, int argc)
 	return Plugin_Continue;
 }
 
+/************************************************************************************************************
+ *											FAKE PLAYER RELATED
+ ************************************************************************************************************/
+
 public void RemoveHealth(int client_index, float damage, int attacker, int damagetype, char[] weapon)
 {
 	
@@ -867,10 +873,9 @@ public void CreateFakePlayer(int client_index, bool isCam)
 	}
 }
 
-public void HideHudGuns(int client_index)
-{
-	SetEntProp(client_index, Prop_Send, "m_iHideHUD", HIDEHUD_WEAPONSELECTION);
-}
+/************************************************************************************************************
+ *											TESTS
+ ************************************************************************************************************/
 
 public bool IsWeaponGear(int weapon_index)
 {
@@ -913,12 +918,34 @@ stock bool IsValidClient(int client)
 	return IsClientInGame(client);
 }
 
-#define FFADE_IN            0x0001        // Just here so we don't pass 0 into the function
-#define FFADE_OUT           0x0002        // Fade out (not in)
-#define FFADE_MODULATE      0x0004        // Modulate (don't blend)
-#define FFADE_STAYOUT       0x0008        // ignores the duration, stays faded out until new ScreenFade message received
-#define FFADE_PURGE         0x0010        // Purges all other fades, replacing them with this one
+/************************************************************************************************************
+ *											PLAYER VIEW
+ ************************************************************************************************************/
 
+public int GetViewModelIndex(int client_index)
+{
+	int index = MAXPLAYERS;
+	while ((index = FindEntityByClassname(index, "predicted_viewmodel")) != -1)
+	{
+		int owner = GetEntPropEnt(index, Prop_Send, "m_hOwner");
+		
+		if (owner != client_index)
+			continue;
+		
+		return index;
+	}
+	return -1;
+}
+
+public void SetViewModel(int client_index, bool enabled)
+{
+	int EntEffects = GetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects");
+	if (enabled)
+		EntEffects |= ~32;
+	else
+		EntEffects |= 32; // Set to Nodraw
+	SetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects", EntEffects);
+}
 
 public void SetGearScreen(int client, bool isActive)
 {
@@ -956,4 +983,9 @@ public void SetGearScreen(int client, bool isActive)
 	}
 	
 	EndMessage();
+}
+
+public void HideHudGuns(int client_index)
+{
+	SetEntProp(client_index, Prop_Send, "m_iHideHUD", HIDEHUD_WEAPONSELECTION);
 }
