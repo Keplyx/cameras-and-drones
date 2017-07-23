@@ -32,6 +32,10 @@ ConVar cvar_jumpcooldown = null;
 
 ConVar cvar_tkprotect = null;
 
+ConVar cvar_dronespeed = null;
+ConVar cvar_dronejump = null;
+
+
 public void CreateConVars(char[] version)
 {
 	CreateConVar("cameras-and-drones_version", version, "Cameras and Drones Version", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
@@ -49,6 +53,11 @@ public void CreateConVars(char[] version)
 	cvar_jumpcooldown = CreateConVar("cd_jumpcooldown", "1", "Set the time players must wait before jmping again with the drone.", FCVAR_NOTIFY, true, 0.0, true, 30000.0);
 	
 	cvar_tkprotect = CreateConVar("cd_tkprotect", "1", "Set whether teammates can break gear. 0 = no protection, 1 = protected", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	
+	cvar_dronespeed = CreateConVar("cd_dronespeed", "150", "Set the drone speed. 130 = human walk, 250 = human run", FCVAR_NOTIFY, true, 1.0, true, 500.0);
+	cvar_dronejump = CreateConVar("cd_dronejump", "300", "Set drone jump force", FCVAR_NOTIFY, true, 0.0, true, 500.0);
+	cvar_dronespeed.AddChangeHook(OnDroneSpeedChange);
+	cvar_dronejump.AddChangeHook(OnDroneJumpChange);
 	AutoExecConfig(true, "cameras-and-drones");
 }
 

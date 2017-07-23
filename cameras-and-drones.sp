@@ -989,3 +989,17 @@ public void HideHudGuns(int client_index)
 {
 	SetEntProp(client_index, Prop_Send, "m_iHideHUD", HIDEHUD_WEAPONSELECTION);
 }
+
+/************************************************************************************************************
+ *											CONVARS
+ ************************************************************************************************************/
+
+public void OnDroneSpeedChange(ConVar convar, char[] oldValue, char[] newValue)
+{
+	droneSpeed = convar.FloatValue;
+}
+
+public void OnDroneJumpChange(ConVar convar, char[] oldValue, char[] newValue)
+{
+	droneJumpForce = convar.FloatValue;
+}
