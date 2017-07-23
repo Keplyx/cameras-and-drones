@@ -264,11 +264,14 @@ public void ExitDrone(int client_index)
 	activeDrone[client_index][1] = -1;
 }
 
-public void DestroyDrone(int drone)
+public void DestroyDrone(int drone, bool isSilent)
 {
-	float pos[3];
-	GetEntPropVector(drone, Prop_Send, "m_vecOrigin", pos);
-	EmitSoundToAll(destroyDroneSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
+	if (!isSilent)
+	{
+		float pos[3];
+		GetEntPropVector(drone, Prop_Send, "m_vecOrigin", pos);
+		EmitSoundToAll(destroyDroneSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
+	}
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
 		if (activeDrone[i][0] == drone && IsValidClient(i))

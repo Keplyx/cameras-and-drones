@@ -217,11 +217,14 @@ public void ExitCam(int client_index)
 	EmitSoundToClient(client_index, openCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 }
 
-public void DestroyCamera(int cam)
+public void DestroyCamera(int cam, bool isSilent)
 {
-	float pos[3];
-	GetEntPropVector(cam, Prop_Send, "m_vecOrigin", pos);
-	EmitSoundToAll(destroyCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
+	if (!isSilent)
+	{
+		float pos[3];
+		GetEntPropVector(cam, Prop_Send, "m_vecOrigin", pos);
+		EmitSoundToAll(destroyCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
+	}
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
 		if (activeCam[i][0] == cam && IsValidClient(i))

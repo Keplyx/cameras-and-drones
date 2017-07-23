@@ -154,7 +154,7 @@ public void ResetPlayer(int client_index)
 		for (int i = 0; i < dronesList.Length; i++)
 		{
 			if (dronesOwnerList.Get(i) == client_index)
-				DestroyDrone(dronesList.Get(i));
+				DestroyDrone(dronesList.Get(i), true);
 		}
 	}
 	if (camerasList != null)
@@ -162,7 +162,7 @@ public void ResetPlayer(int client_index)
 		for (int i = 0; i < camerasList.Length; i++)
 		{
 			if (camOwnersList.Get(i) == client_index)
-				DestroyCamera(camerasList.Get(i));
+				DestroyCamera(camerasList.Get(i), true);
 		}
 	}
 
@@ -548,14 +548,14 @@ public void PickupGear(int client_index, int i)
 
 public void PickupCamera(int client_index, int cam)
 {
-	DestroyCamera(cam);
+	DestroyCamera(cam, true);
 	GivePlayerItem(client_index, gearWeapon);
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>Camera recovered</font>");
 }
 
 public void PickupDrone(int client_index, int cam)
 {
-	DestroyDrone(cam);
+	DestroyDrone(cam, true);
 	GivePlayerItem(client_index, gearWeapon);
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>Drone recovered</font>");
 }
@@ -759,9 +759,9 @@ public Action Hook_TakeDamageGear(int victim, int &attacker, int &inflictor, flo
 		return Plugin_Handled;
 	
 	if (IsClientTeamCameras(client_index))
-		DestroyCamera(victim);
+		DestroyCamera(victim, false);
 	else if (IsClientTeamDrones(client_index))
-		DestroyDrone(victim);
+		DestroyDrone(victim, false);
 	
 	return Plugin_Continue;
 }
