@@ -34,13 +34,11 @@ Simply download **[cameras-and-drones.smx](https://github.com/Keplyx/cameras-and
 
 ## Media
 ### Cameras
-![20170723130725_1](https://user-images.githubusercontent.com/23726131/28498865-566ec772-6fa8-11e7-9082-b5e0d018d3eb.jpg)
 ![20170723130732_1](https://user-images.githubusercontent.com/23726131/28498864-566e8e60-6fa8-11e7-861f-29095ef1b1de.jpg)
 ![20170723130741_1](https://user-images.githubusercontent.com/23726131/28498866-566ee4c8-6fa8-11e7-9dad-3082c47b7283.jpg)
 ### Drones
 ![20170723130846_1](https://user-images.githubusercontent.com/23726131/28498867-566f530e-6fa8-11e7-953f-25e849555676.jpg)
 ![20170723130906_1](https://user-images.githubusercontent.com/23726131/28498868-566fd0f4-6fa8-11e7-8513-9124cd78351f.jpg)
-![20170723130938_1](https://user-images.githubusercontent.com/23726131/28498869-56700d6c-6fa8-11e7-8a96-ec2e6f0f38b4.jpg)
 
 ## [:globe_with_meridians: Changlelog](https://github.com/Keplyx/cameras-and-drones/blob/master/Changlelog.md)
 
