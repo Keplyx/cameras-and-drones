@@ -63,6 +63,7 @@ public void CreateConVars(char[] version)
 
 public void RegisterCommands()
 {
+	RegConsoleCmd("cd_override", OverrideGear, "Override gear for a player");
 	RegConsoleCmd("cd_buy", BuyGear, "Buy team gear");
 	RegConsoleCmd("cd_cam", OpenGear, "Open gear");
 	RegConsoleCmd("cd_help", ShowHelp, "Show plugin help");

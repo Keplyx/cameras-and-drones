@@ -57,6 +57,8 @@ int collisionOffsets;
 
 int boughtGear[MAXPLAYERS + 1];
 
+int playerGearOverride[MAXPLAYERS + 1];
+
 /************************************************************************************************************
  *											INIT
  ************************************************************************************************************/
@@ -158,6 +160,7 @@ public void ResetPlayer(int client_index)
 	canDisplayThrowWarning[client_index] = true;
 	canDroneJump[client_index] = true;
 	isDroneJumping[client_index] = false;
+	playerGearOverride[client_index] = 0;
 }
 
 public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
@@ -189,6 +192,7 @@ public void InitVars()
 		canDisplayThrowWarning[i] = true;
 		canDroneJump[i] = true;
 		isDroneJumping[i] = false;
+		playerGearOverride[i] = 0;
 	}
 }
 
@@ -300,6 +304,81 @@ public Action ShowHelp(int client_index, int args)
 	CPrintToChat(client_index, "{yellow}Options -> Keyboard/Mouse -> Toggle Console");
 	CPrintToChat(client_index, "{lime}Open the console for more information");
 	CPrintToChat(client_index, "{green}----- ---------- ---------- -----");
+	return Plugin_Handled;
+}
+
+public Action OverrideGear(int client_index, int args)
+{
+	if (args == 0)
+	{
+		PrintToConsole(client_index, "Usage: cd_override <player> <gear_num>");
+		PrintToConsole(client_index, "<gear_num> = 0 | no override");
+		PrintToConsole(client_index, "<gear_num> = 1 | force camera");
+		PrintToConsole(client_index, "<gear_num> = 1 | force drone");
+		return Plugin_Handled;
+	}
+	
+	char name[32];
+	int target = -1;
+	GetCmdArg(1, name, sizeof(name));
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientConnected(i))
+		{
+			continue;
+		}
+		char other[32];
+		GetClientName(i, other, sizeof(other));
+		if (StrEqual(name, other))
+		{
+			target = i;
+		}
+	}
+	if (target == -1)
+	{
+		PrintToConsole(client_index, "Could not find any player with the name: \"%s\"", name);
+		PrintToConsole(client_index, "Available players:");
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (!IsClientConnected(i))
+			{
+				continue;
+			}
+			char player[32];
+			GetClientName(i, player, sizeof(player));
+			PrintToConsole(client_index, "\"%s\"", player);
+		}
+		return Plugin_Handled;
+	}
+	
+	char gear[32];
+	GetCmdArg(2, gear, sizeof(gear));
+	int gearNum = StringToInt(gear);
+	
+	if (gearNum > 2 || gearNum < 0)
+		gearNum = 0;
+	
+	playerGearOverride[target] = gearNum;
+	
+	switch (gearNum)
+	{
+		case 0:
+		{
+			PrintToConsole(client_index, "%s doesn't have gear override", name);
+			PrintToConsole(target, "You are now using your team gear");
+		}
+		case 1:
+		{
+			PrintToConsole(client_index, "%s now has cameras", name);
+			PrintToConsole(target, "You are now using cameras");
+		}
+		case 2:
+		{
+			PrintToConsole(client_index, "%s now has drones", name);
+			PrintToConsole(target, "You are now using drones");
+		}
+	}
+	
 	return Plugin_Handled;
 }
 
@@ -623,11 +702,11 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 	
 	if (IsClientInDrone(client_index)) // Drone specific input
 	{
+		vel[0] = 0.0;
+		vel[1] = 0.0;
+		vel[2] = 0.0;
 		if (buttons & IN_FORWARD)
 		{
-			vel[0] = 0.0;
-			vel[1] = 0.0;
-			vel[2] = 0.0;
 			isDroneMoving[client_index] = true;
 			if (!isDroneJumping[client_index]) // Prevent moving reset vel while trying to jump
 				MoveDrone(client_index, activeDrone[client_index][0]);
@@ -644,13 +723,6 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			isDroneMoving[client_index] = true;
 		else if (!(buttons & IN_FORWARD))
 			isDroneMoving[client_index] = false;
-		
-		if ((buttons & IN_BACK) || (buttons & IN_MOVELEFT) || (buttons & IN_MOVERIGHT)) // Block non-forward movement
-		{
-			vel[0] = 0.0;
-			vel[1] = 0.0;
-			vel[2] = 0.0;
-		}
 	}
 	return Plugin_Changed;
 }
@@ -901,12 +973,12 @@ public bool IsClientInDrone(int client_index)
 
 public bool IsClientTeamCameras(int client_index)
 {
-	return GetClientTeam(client_index) > 1 && (GetClientTeam(client_index) == cvar_gearteam.IntValue || cvar_gearteam.IntValue == 1);
+	return GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) == cvar_gearteam.IntValue || cvar_gearteam.IntValue == 1) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 1);
 }
 
 public bool IsClientTeamDrones(int client_index)
 {
-	return GetClientTeam(client_index) > 1 && (GetClientTeam(client_index) != cvar_gearteam.IntValue || cvar_gearteam.IntValue == 0);
+	return GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) != cvar_gearteam.IntValue || cvar_gearteam.IntValue == 0) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 2);
 }
 
 stock bool IsValidClient(int client)
