@@ -203,14 +203,13 @@ public int Native_BuyPlayerGear(Handle plugin, int numParams)
 	int client_index = GetNativeCell(1);
 	if (!IsValidClient(client_index))
 	{
-		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index (%d)", client_index);
+		PrintToServer("Invalid client (%d)", client_index)
+		return;
 	}
 	if (IsClientTeamCameras(client_index))
 		BuyCamera(client_index, true);
 	else if (IsClientTeamDrones(client_index))
 		BuyDrone(client_index, true);
-	
-	return 1;
 }
 
 public int Native_OverridePlayerGear(Handle plugin, int numParams)
@@ -218,7 +217,8 @@ public int Native_OverridePlayerGear(Handle plugin, int numParams)
 	int client_index = GetNativeCell(1);
 	if (!IsValidClient(client_index))
 	{
-		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index (%d)", client_index);
+		PrintToServer("Invalid client (%d)", client_index)
+		return;
 	}
 	int gearNum = GetNativeCell(2);
 	
@@ -234,8 +234,6 @@ public int Native_OverridePlayerGear(Handle plugin, int numParams)
 		case 1: PrintToConsole(client_index, "You are now using cameras");
 		case 2: PrintToConsole(client_index, "You are now using drones");
 	}
-	
-	return 1;
 }
 
 /************************************************************************************************************

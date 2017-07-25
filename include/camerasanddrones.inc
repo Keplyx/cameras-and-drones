@@ -27,8 +27,8 @@
  * Buy the gear (camera or drone) depending on the player team
  *
  * @param client	Client index.
- * @return	1 on success.
- * @error	Invalid client index.
+ * @return
+ * @error	Invalid client.
  */
 native void BuyPlayerGear(int client);
 
@@ -37,7 +37,7 @@ native void BuyPlayerGear(int client);
  *
  * @param client	Client index.
  * @param override	Override parameter: -1= no gear, 0= no override, 1= force cameras, 2= force drones.
- * @return	1 on success.
- * @error	Invalid client index.
+ * @return
+ * @error	Invalid client.
  */
 native void OverridePlayerGear(int client, int override);
