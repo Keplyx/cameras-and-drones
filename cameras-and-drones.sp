@@ -23,6 +23,7 @@
 #include <cstrike>
 #include <usermessages>
 #include <csgocolors>
+#include <camerasanddrones>
 
 #pragma newdecls required;
 
@@ -74,6 +75,8 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	CreateNative("BuyPlayerGear", Native_BuyPlayerGear);
+	CreateNative("OverridePlayerGear", Native_OverridePlayerGear);
 	lateload = late;
 	return APLRes_Success;
 }
@@ -155,17 +158,12 @@ public void ResetPlayer(int client_index)
 				DestroyCamera(camerasList.Get(i), true);
 		}
 	}
-
+	
 	boughtGear[client_index] = 0;
 	canDisplayThrowWarning[client_index] = true;
 	canDroneJump[client_index] = true;
 	isDroneJumping[client_index] = false;
 	playerGearOverride[client_index] = 0;
-}
-
-public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
-{
-	InitVars();
 }
 
 public void InitVars()
@@ -194,6 +192,59 @@ public void InitVars()
 		isDroneJumping[i] = false;
 		playerGearOverride[i] = 0;
 	}
+}
+
+/************************************************************************************************************
+ *											NATIVES
+ ************************************************************************************************************/
+
+public int Native_BuyPlayerGear(Handle plugin, int numParams)
+{
+	int client_index = GetNativeCell(1);
+	if (!IsValidClient(client_index))
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index (%d)", client_index);
+	}
+	if (IsClientTeamCameras(client_index))
+		BuyCamera(client_index, true);
+	else if (IsClientTeamDrones(client_index))
+		BuyDrone(client_index, true);
+	
+	return 1;
+}
+
+public int Native_OverridePlayerGear(Handle plugin, int numParams)
+{
+	int client_index = GetNativeCell(1);
+	if (!IsValidClient(client_index))
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index (%d)", client_index);
+	}
+	int gearNum = GetNativeCell(2);
+	
+	if (gearNum > 2 || gearNum < -1)
+		gearNum = 0;
+	
+	playerGearOverride[client_index] = gearNum;
+	
+	switch (gearNum)
+	{
+		case -1: PrintToConsole(client_index, "You can't use any gear");
+		case 0: PrintToConsole(client_index, "You are now using your team gear");
+		case 1: PrintToConsole(client_index, "You are now using cameras");
+		case 2: PrintToConsole(client_index, "You are now using drones");
+	}
+	
+	return 1;
+}
+
+/************************************************************************************************************
+ *											EVENTS
+ ************************************************************************************************************/
+
+public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
+{
+	InitVars();
 }
 
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
@@ -355,16 +406,21 @@ public Action OverrideGear(int client_index, int args)
 	GetCmdArg(2, gear, sizeof(gear));
 	int gearNum = StringToInt(gear);
 	
-	if (gearNum > 2 || gearNum < 0)
+	if (gearNum > 2 || gearNum < -1)
 		gearNum = 0;
 	
 	playerGearOverride[target] = gearNum;
 	
 	switch (gearNum)
 	{
+		case -1:
+		{
+			PrintToConsole(client_index, "% now doesn't have gear", name);
+			PrintToConsole(target, "You can't use any gear");
+		}
 		case 0:
 		{
-			PrintToConsole(client_index, "%s doesn't have gear override", name);
+			PrintToConsole(client_index, "%s now doesn't have gear override", name);
 			PrintToConsole(target, "You are now using your team gear");
 		}
 		case 1:
@@ -385,46 +441,52 @@ public Action OverrideGear(int client_index, int args)
 public Action BuyGear(int client_index, int args)
 {
 	if (IsClientTeamCameras(client_index))
-		BuyCamera(client_index);
+		BuyCamera(client_index, false);
 	else if (IsClientTeamDrones(client_index))
-		BuyDrone(client_index);
+		BuyDrone(client_index, false);
 	
 	return Plugin_Handled;
 }
 
-public void BuyCamera(int client_index)
+public void BuyCamera(int client_index, bool isFree)
 {
 	if (boughtGear[client_index] >= 1)
 	{
 		PrintHintText(client_index, "<font color='#ff0000' size='30'>You already bought a camera</font>");
 		return;
 	}
-	int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
-	if (cvar_camprice.IntValue > money)
+	if (!isFree)
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='30'>Not enough money</font>");
-		return;
+		int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
+		if (cvar_camprice.IntValue > money)
+		{
+			PrintHintText(client_index, "<font color='#ff0000' size='30'>Not enough money</font>");
+			return;
+		}
+		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_camprice.IntValue);
 	}
-	SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_camprice.IntValue);
 	GivePlayerItem(client_index, gearWeapon);
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a camera</font>");
 	boughtGear[client_index]++;
 }
 
-public void BuyDrone(int client_index)
+public void BuyDrone(int client_index, bool isFree)
 {
 	if (boughtGear[client_index] >= 1)
 	{
 		PrintHintText(client_index, "<font color='#ff0000' size='30'>You already bought a drone</font>");
 		return;
 	}
-	int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
-	if (cvar_droneprice.IntValue > money)
+	if (!isFree)
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='30'>Not enough money</font>");
-		return;
+		int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
+		if (cvar_droneprice.IntValue > money)
+		{
+			PrintHintText(client_index, "<font color='#ff0000' size='30'>Not enough money</font>");
+			return;
+		}
+		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_droneprice.IntValue);
 	}
-	SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_droneprice.IntValue);
 	GivePlayerItem(client_index, gearWeapon);
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a drone</font>");
 	boughtGear[client_index]++;
@@ -973,12 +1035,12 @@ public bool IsClientInDrone(int client_index)
 
 public bool IsClientTeamCameras(int client_index)
 {
-	return GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) == cvar_gearteam.IntValue || cvar_gearteam.IntValue == 1) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 1);
+	return playerGearOverride[client_index] != -1 && GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) == cvar_gearteam.IntValue || cvar_gearteam.IntValue == 1) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 1);
 }
 
 public bool IsClientTeamDrones(int client_index)
 {
-	return GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) != cvar_gearteam.IntValue || cvar_gearteam.IntValue == 0) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 2);
+	return playerGearOverride[client_index] != -1 && GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) != cvar_gearteam.IntValue || cvar_gearteam.IntValue == 0) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 2);
 }
 
 stock bool IsValidClient(int client)
