@@ -1,5 +1,5 @@
 /*
-*   This file is part of droneeras and Drones.
+*   This file is part of Cameras and Drones.
 *   Copyright (C) 2017  Keplyx
 *
 *   This program is free software: you can redistribute it and/or modify
