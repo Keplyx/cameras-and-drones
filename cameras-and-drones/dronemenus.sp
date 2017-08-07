@@ -92,3 +92,20 @@ public int MenuHandler_Drones(Menu menu, MenuAction action, int param1, int para
 	else if (action == MenuAction_End)
 		delete menu;
 }
+
+public void ResetDronesMenuPlayer(int client_index)
+{
+	if (playerDroneMenus[client_index] != null)
+	{
+		delete playerDroneMenus[client_index];
+		playerDroneMenus[client_index] = null;
+	}
+}
+
+public void ResetDronesMenuAll()
+{
+	for (int i = 0; i <= MAXPLAYERS; i++)
+	{
+		ResetDronesMenuPlayer(i);
+	}
+}

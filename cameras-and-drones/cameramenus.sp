@@ -72,3 +72,20 @@ public int MenuHandler_Cameras(Menu menu, MenuAction action, int param1, int par
 	else if (action == MenuAction_End)
 		delete menu;
 }
+
+public void ResetCamerasMenuPlayer(int client_index)
+{
+	if (playerCamMenus[client_index] != null)
+	{
+		delete playerCamMenus[client_index];
+		playerCamMenus[client_index] = null;
+	}
+}
+
+public void ResetCamerasMenuAll()
+{
+	for (int i = 0; i <= MAXPLAYERS; i++)
+	{
+		ResetCamerasMenuPlayer(i);
+	}
+}

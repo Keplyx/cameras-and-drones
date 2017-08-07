@@ -32,11 +32,13 @@
 #include "cameras-and-drones/init.sp"
 
 /*  New in this version
-*	First release!
+*	Added gear override commands + natives
+*	Added cvar to choose whether to use cameras angles for the player
+*	Fixed menu closing error when finishing a round inside camera/drone
 *
 */
 
-#define VERSION "1.0.0"
+#define VERSION "1.0.2"
 #define AUTHOR "Keplyx"
 #define PLUGIN_NAME "Cameras and Drones"
 
@@ -174,6 +176,11 @@ public void InitVars()
 	dronesList = new ArrayList();
 	dronesModelList = new ArrayList();
 	dronesOwnerList = new ArrayList();
+	
+	droneSpeed = cvar_dronespeed.FloatValue;
+	droneJumpForce = cvar_dronejump.FloatValue;
+	useCamAngles = cvar_usecamangles.BoolValue;
+	
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
 		for (int j = 0; j < sizeof(activeCam[]); j++)
@@ -243,6 +250,8 @@ public int Native_OverridePlayerGear(Handle plugin, int numParams)
 public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
 {
 	InitVars();
+	ResetDronesMenuAll();
+	ResetCamerasMenuAll();
 }
 
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
@@ -687,6 +696,7 @@ public void CloseCamera(int client_index)
 	if (playerCamMenus[client_index] != null)
 	{
 		delete playerCamMenus[client_index];
+		playerCamMenus[client_index] = null;
 	}
 }
 
@@ -696,6 +706,7 @@ public void CloseDrone(int client_index)
 	if (playerDroneMenus[client_index] != null)
 	{
 		delete playerDroneMenus[client_index];
+		playerDroneMenus[client_index] = null;
 	}
 }
 
@@ -1134,4 +1145,9 @@ public void OnDroneSpeedChange(ConVar convar, char[] oldValue, char[] newValue)
 public void OnDroneJumpChange(ConVar convar, char[] oldValue, char[] newValue)
 {
 	droneJumpForce = convar.FloatValue;
+}
+
+public void OnUseCamAnglesChange(ConVar convar, char[] oldValue, char[] newValue)
+{
+	useCamAngles = convar.BoolValue;
 }
