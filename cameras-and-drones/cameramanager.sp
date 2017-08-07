@@ -35,6 +35,8 @@ int fakePlayersListCamera[MAXPLAYERS + 1];
 
 int oldCollisionValue[MAXPLAYERS + 1];
 
+bool useCamAngles = true;
+
 public void AddCamera(int cam, int model, int client_index)
 {
 	camerasList.Push(cam);
@@ -168,9 +170,18 @@ public void TpToCam(int client_index, int cam)
 	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkCam);
 	SDKHook(client_index, SDKHook_OnTakeDamage, Hook_TakeDamagePlayer);
 	// Set pos
-	SetVariantString("!activator"); AcceptEntityInput(client_index, "SetParent", cam, client_index, 0);
 	float pos[3], rot[3];
-	TeleportEntity(client_index, pos, rot, NULL_VECTOR);
+	if (useCamAngles)
+	{
+		SetVariantString("!activator"); AcceptEntityInput(client_index, "SetParent", cam, client_index, 0);
+		TeleportEntity(client_index, pos, rot, NULL_VECTOR);
+	}
+	else
+	{
+		GetEntPropVector(cam, Prop_Send, "m_vecOrigin", pos);
+		TeleportEntity(client_index, pos, NULL_VECTOR, NULL_VECTOR);
+	}
+	
 	// Set collisiosn
 	oldCollisionValue[client_index] = GetEntData(client_index, GetCollOffset(), 1);
 	SetEntData(client_index, GetCollOffset(), 2, 4, true);

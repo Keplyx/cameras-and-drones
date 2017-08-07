@@ -35,6 +35,7 @@ ConVar cvar_tkprotect = null;
 ConVar cvar_dronespeed = null;
 ConVar cvar_dronejump = null;
 
+ConVar cvar_usecamangles = null;
 
 public void CreateConVars(char[] version)
 {
@@ -58,6 +59,9 @@ public void CreateConVars(char[] version)
 	cvar_dronejump = CreateConVar("cd_dronejump", "300", "Set drone jump force", FCVAR_NOTIFY, true, 0.0, true, 500.0);
 	cvar_dronespeed.AddChangeHook(OnDroneSpeedChange);
 	cvar_dronejump.AddChangeHook(OnDroneJumpChange);
+	
+	cvar_usecamangles = CreateConVar("cd_usecamangles", "1", "Set whether to use camera angles when using it.", FCVAR_NOTIFY, true, 0.0, true, 1.0); 
+	cvar_usecamangles.AddChangeHook(OnUseCamAnglesChange);
 	AutoExecConfig(true, "cameras-and-drones");
 }
 

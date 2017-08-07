@@ -174,6 +174,11 @@ public void InitVars()
 	dronesList = new ArrayList();
 	dronesModelList = new ArrayList();
 	dronesOwnerList = new ArrayList();
+	
+	droneSpeed = cvar_dronespeed.FloatValue;
+	droneJumpForce = cvar_dronejump.FloatValue;
+	useCamAngles = cvar_usecamangles.BoolValue;
+	
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
 		for (int j = 0; j < sizeof(activeCam[]); j++)
@@ -687,6 +692,7 @@ public void CloseCamera(int client_index)
 	if (playerCamMenus[client_index] != null)
 	{
 		delete playerCamMenus[client_index];
+		playerCamMenus[client_index] = null;
 	}
 }
 
@@ -696,6 +702,7 @@ public void CloseDrone(int client_index)
 	if (playerDroneMenus[client_index] != null)
 	{
 		delete playerDroneMenus[client_index];
+		playerDroneMenus[client_index] = null;
 	}
 }
 
@@ -1134,4 +1141,9 @@ public void OnDroneSpeedChange(ConVar convar, char[] oldValue, char[] newValue)
 public void OnDroneJumpChange(ConVar convar, char[] oldValue, char[] newValue)
 {
 	droneJumpForce = convar.FloatValue;
+}
+
+public void OnUseCamAnglesChange(ConVar convar, char[] oldValue, char[] newValue)
+{
+	useCamAngles = convar.BoolValue;
 }
