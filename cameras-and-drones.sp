@@ -38,7 +38,7 @@
 *
 */
 
-#define VERSION "1.0.2"
+#define VERSION "1.1.0"
 #define AUTHOR "Keplyx"
 #define PLUGIN_NAME "Cameras and Drones"
 
@@ -119,8 +119,8 @@ public int GetCollOffset()
 public void OnMapStart()
 {
 	PrecacheModel(inCamModel, true);
-	PrecacheModel(dronePhysModel, true);
-	PrecacheModel(camPhysModel, true);
+	PrecacheModel(defaultDronePhysModel, true);
+	PrecacheModel(defaultCamPhysModel, true);
 	
 	PrecacheSound(droneSound, true);
 	PrecacheSound(droneJumpSound, true);
@@ -1184,44 +1184,57 @@ public void OnDroneHoverHeightChange(ConVar convar, char[] oldValue, char[] newV
 
 public void ReadCustomModelsFile()
 {
-	char path[PLATFORM_MAX_PATH];
+	char path[PLATFORM_MAX_PATH], line[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, path, sizeof(path), "%s", customModelsPath);
 	File file = OpenFile(path, "r");
-	char line[512];
 	while (file.ReadLine(line, sizeof(line)))
 	{
 		if (StrContains(line, "//", false) == 0)
 			continue;
-		if (StrContains(line, "cam=", false) == 0)
-		{
-			ReplaceString(line, sizeof(line), "cam=", "", false);
-			ReplaceString(line, sizeof(line), "\n", "", false);
-			if (TryPrecacheCamModel(line))
-				Format(customCamModel, sizeof(customCamModel), "%s", line);
-			else
-				customCamModel = "";
-		}
-		else if (StrContains(line, "drone=", false) == 0)
-		{
-			ReplaceString(line, sizeof(line), "drone=", "", false);
-			ReplaceString(line, sizeof(line), "\n", "", false);
-			if (TryPrecacheCamModel(line))
-				Format(customDroneModel, sizeof(customDroneModel), "%s", line);
-			else
-				customDroneModel = "";
-		}
+		
+		if (StrContains(line, "cammodel=", false) == 0)
+			ReadModel(line, "cammodel=", 0)
+		if (StrContains(line, "camphys=", false) == 0)
+			ReadModel(line, "camphys=", 1)
+		else if (StrContains(line, "dronemodel=", false) == 0)
+			ReadModel(line, "dronemodel=", 2)
+		else if (StrContains(line, "dronephys=", false) == 0)
+			ReadModel(line, "dronephys=", 3)
 		else if (StrContains(line, "camrot{", false) == 0)
-		{
 			SetCustomRotation(file, false);
-		}
 		else if (StrContains(line, "dronerot{", false) == 0)
-		{
 			SetCustomRotation(file, true);
-		}
+		
 		if (file.EndOfFile())
 			break;
 	}
 	CloseHandle(file);
+}
+
+public void ReadModel(char line[PLATFORM_MAX_PATH], char[] trigger, int type)
+{
+	ReplaceString(line, sizeof(line), trigger, "", false);
+	ReplaceString(line, sizeof(line), "\n", "", false);
+	if (TryPrecacheCamModel(line))
+	{
+		switch (type)
+		{
+			case 0: Format(customCamModel, sizeof(customCamModel), "%s", line);
+			case 1: Format(customCamPhysModel, sizeof(customCamPhysModel), "%s", line);
+			case 2: Format(customDroneModel, sizeof(customDroneModel), "%s", line);
+			case 3: Format(customDronePhysModel, sizeof(customDronePhysModel), "%s", line);
+		}
+	}
+	else
+	{
+		switch (type)
+		{
+			case 0: customCamModel = "";
+			case 1: customCamPhysModel = "";
+			case 2: customDroneModel = "";
+			case 3: customDronePhysModel = "";
+		}
+	}
 }
 
 public void SetCustomRotation(File file, bool isDrone)

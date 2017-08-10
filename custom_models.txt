@@ -1,0 +1,43 @@
+// -----------------------------------------------------------------------------
+//                                  INFOS
+// -----------------------------------------------------------------------------
+
+// Specify the models you want to use for cameras and drones
+// If a model is not specified, the default one (models/weapons/w_eq_sensorgrenade_thrown.mdl) will be used (specified rotation will still be used!)
+// Enter model path relative to the csgo/ folder (eg: models/custom/drone.mdl)
+// Physics models are used for collisions, hitbox, pickup.
+// Be sure to change the drone hover height to match its physic model.
+
+// -----------------------------------------------------------------------------
+//                                  DRONE
+// -----------------------------------------------------------------------------
+
+// Does not rotate, use a spherical model for a better experience
+dronephys=models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl
+dronemodel=models/weapons/w_eq_sensorgrenade_thrown.mdl
+dronerot{
+x=0.0
+y=0.0
+z=0.0
+}
+
+
+// -----------------------------------------------------------------------------
+//                                  CAMERA
+// -----------------------------------------------------------------------------
+
+// Has the same angles as the real model, and you can use the same model (one slightly bigger is recomended)
+camphys=models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl
+cammodel=models/weapons/w_eq_sensorgrenade_thrown.mdl
+camrot{
+x=0.0
+y=0.0
+z=0.0
+}
+
+
+
+// -----------------------------------------------------------------------------
+//                                  HELP
+// -----------------------------------------------------------------------------
+// Did you screw up the file? Download the default one at https://github.com/Keplyx/cameras-and-drones

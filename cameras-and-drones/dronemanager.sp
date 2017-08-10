@@ -26,7 +26,7 @@ char destroyDroneSound[] = "physics/metal/metal_box_impact_bullet1.wav";
 
 char inDroneModel[] = "models/chicken/festive_egg.mdl"; // must have hitbox or it will use the default player one
 char defaultDroneModel[] = "models/weapons/w_eq_sensorgrenade_thrown.mdl";
-char dronePhysModel[] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl";
+char defaultDronePhysModel[] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl";
 
 ArrayList dronesList;
 ArrayList dronesModelList;
@@ -44,7 +44,8 @@ float droneSpeed = 200.0;
 float droneJumpForce = 300.0;
 bool useCustomDroneModel = false;
 float customDroneModelRot[3];
-char customDroneModel[512];
+char customDroneModel[PLATFORM_MAX_PATH];
+char customDronePhysModel[PLATFORM_MAX_PATH];
 
 bool isDroneGrounded[MAXPLAYERS + 1];
 bool isDroneMoving[MAXPLAYERS + 1];
@@ -71,7 +72,10 @@ public void CreateDrone(int client_index, float pos[3], float rot[3])
 	// Can be moved, must have a larger hitbox than the drone model (no stuck, easier pickup, easier target)
 	int drone = CreateEntityByName("prop_physics_override"); 
 	if (IsValidEntity(drone)) {
-		SetEntityModel(drone, dronePhysModel);
+		if (useCustomDroneModel && !StrEqual(customDronePhysModel, "", false))
+			SetEntityModel(drone, customDronePhysModel);
+		else
+			SetEntityModel(drone, defaultDronePhysModel);
 		DispatchKeyValue(drone, "solid", "6");
 		//DispatchKeyValue(drone, "overridescript", "mass,100.0,inertia,1.0,damping,1.0,rotdamping ,1.0"); // overwrite params
 		DispatchKeyValue(drone, "overridescript", "rotdamping,1000.0"); // Prevent drone rotation

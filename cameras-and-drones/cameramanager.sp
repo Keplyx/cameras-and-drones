@@ -25,8 +25,9 @@ char destroyCamSound[] = "physics/metal/metal_box_impact_bullet1.wav";
 // MODELS
 char inCamModel[] = "models/chicken/festive_egg.mdl"; // must have hitbox or it will use the default player one
 char defaultCamModel[] = "models/weapons/w_eq_sensorgrenade_thrown.mdl";
-char customCamModel[512];
-char camPhysModel[] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl"; // Must surround cam
+char defaultCamPhysModel[] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl"; // Must surround cam
+char customCamModel[PLATFORM_MAX_PATH];
+char customCamPhysModel[PLATFORM_MAX_PATH];
 // LISTS
 ArrayList camerasList;
 ArrayList camerasModelList;
@@ -61,7 +62,10 @@ public void CreateCamera(int client_index, float pos[3], float rot[3])
 {
 	int cam = CreateEntityByName("prop_dynamic_override");
 	if (IsValidEntity(cam)) {
-		SetEntityModel(cam, camPhysModel);
+		if (useCustomCamModel && !StrEqual(customCamPhysModel, "", false))
+			SetEntityModel(cam, customCamPhysModel);
+		else
+			SetEntityModel(cam, defaultCamPhysModel);
 		DispatchKeyValue(cam, "solid", "6");
 		DispatchSpawn(cam);
 		ActivateEntity(cam);
