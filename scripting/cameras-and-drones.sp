@@ -32,9 +32,9 @@
 #include "cameras-and-drones/init.sp"
 
 /*  New in this version
-*	Added gear override commands + natives
-*	Added cvar to choose whether to use cameras angles for the player
-*	Fixed menu closing error when finishing a round inside camera/drone
+*	Added support for custom camera and drone models
+*	Added new commands in the help
+*	Added cvar to change the drone hover height
 *
 */
 
@@ -359,6 +359,12 @@ public Action ShowHelp(int client_index, int args)
 	PrintToConsole(client_index, "|cd_cam           |             |Open gear              |");
 	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
 	PrintToConsole(client_index, "|cd_help          |!cd_help     |Display this help      |");
+	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
+	PrintToConsole(client_index, "|-----------        ADMIN ONLY       -------------------|");
+	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
+	PrintToConsole(client_index, "|cd_override      |             |Override player gear   |");
+	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
+	PrintToConsole(client_index, "|cd_reloadmodels  |             |Reload custom models   |");
 	PrintToConsole(client_index, "|-------------------------------------------------------|");
 	PrintToConsole(client_index, "");
 	PrintToConsole(client_index, "For a better experience, you should bind cd_buy and cd_cam to a key:");
