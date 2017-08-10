@@ -1196,35 +1196,63 @@ public void ReadCustomModelsFile()
 			else
 				customCamModel = "";
 		}
-		if (StrContains(line, "camrot:", false) == 0)
+		else if (StrContains(line, "drone=", false) == 0)
 		{
-			while (file.ReadLine(line, sizeof(line)))
-			{
-				int i = 0;
-				if (StrContains(line, "x=", false) == 0)
-					ReplaceString(line, sizeof(line), "x=", "", false);
-				else if (StrContains(line, "y=", false) == 0)
-				{
-					ReplaceString(line, sizeof(line), "y=", "", false);
-					i = 1;
-				}
-				else if (StrContains(line, "z=", false) == 0)
-				{
-					ReplaceString(line, sizeof(line), "z=", "", false);
-					i = 2;
-				}
-				else
-					continue;
-				ReplaceString(line, sizeof(line), "\n", "", false);
-				customCamModelRot[i] = StringToFloat(line);
-				PrintToServer("%i: %f", i, customCamModelRot[i]);
-			}
+			ReplaceString(line, sizeof(line), "drone=", "", false);
+			ReplaceString(line, sizeof(line), "\n", "", false);
+			if (TryPrecacheCamModel(line))
+				Format(customDroneModel, sizeof(customDroneModel), "%s", line);
+			else
+				customDroneModel = "";
+		}
+		else if (StrContains(line, "camrot{", false) == 0)
+		{
+			SetCustomRotation(file, false);
+		}
+		else if (StrContains(line, "dronerot{", false) == 0)
+		{
+			SetCustomRotation(file, true);
 		}
 		if (file.EndOfFile())
 			break;
 	}
 	CloseHandle(file);
 }
+
+public void SetCustomRotation(File file, bool isDrone)
+{
+	char line[512];
+	while (file.ReadLine(line, sizeof(line)))
+	{
+		int i = 0;
+		if (StrContains(line, "x=", false) == 0)
+			ReplaceString(line, sizeof(line), "x=", "", false);
+		else if (StrContains(line, "y=", false) == 0)
+		{
+			ReplaceString(line, sizeof(line), "y=", "", false);
+			i = 1;
+		}
+		else if (StrContains(line, "z=", false) == 0)
+		{
+			ReplaceString(line, sizeof(line), "z=", "", false);
+			i = 2;
+		}
+		else if (StrContains(line, "}", false) == 0)
+			return;
+		ReplaceString(line, sizeof(line), "\n", "", false);
+		if (isDrone)
+		{
+			customDroneModelRot[i] = StringToFloat(line);
+			PrintToServer("Drone rotation: %i: %f", i, customDroneModelRot[i]);
+		}
+		else
+		{
+			customCamModelRot[i] = StringToFloat(line);
+			PrintToServer("Camera rotation: %i: %f", i, customCamModelRot[i]);
+		}
+	}
+}
+
 
 public bool TryPrecacheCamModel(char[] model)
 {
