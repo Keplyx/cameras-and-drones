@@ -1,7 +1,7 @@
 [Project]
-3dacfd29-8559-489e-82e2-3fb39cfbd4b5=/home/keplyx/Documents/Sourcemod/cameras-and-drones/cameras-and-drones.sp
-983508e5-1068-47d2-a1e8-353bb463f380=/home/keplyx/Documents/Sourcemod/cameras-and-drones/cameras-and-drones/cameramenus.sp
-1474e1a6-709c-4188-a041-101fcba281cb=/home/keplyx/Documents/Sourcemod/cameras-and-drones/cameras-and-drones/cameramanager.sp
-7ab3e47d-b695-436f-9dd6-f9bc6f7b00cb=/home/keplyx/Documents/Sourcemod/cameras-and-drones/cameras-and-drones/dronemenus.sp
-0b060336-8e1c-4dd7-a9bd-8b295db326f4=/home/keplyx/Documents/Sourcemod/cameras-and-drones/cameras-and-drones/dronemanager.sp
-ac5326e9-1065-431d-b416-fafe21dd84d7=/home/keplyx/Documents/Sourcemod/cameras-and-drones/cameras-and-drones/init.sp
+6b393a70-9f25-41c9-840a-dee69ce0b972=/home/keplyx/Documents/Sourcemod/cameras-and-drones/scripting/cameras-and-drones.sp
+73fac8c2-b104-44a3-8ae9-d04905b9210d=/home/keplyx/Documents/Sourcemod/cameras-and-drones/scripting/cameras-and-drones/cameramenus.sp
+503f7535-1021-401e-8ec8-2f735abbf2a7=/home/keplyx/Documents/Sourcemod/cameras-and-drones/scripting/cameras-and-drones/cameramanager.sp
+a5bd7f90-fdd4-4521-a50e-56496dd97e6a=/home/keplyx/Documents/Sourcemod/cameras-and-drones/scripting/cameras-and-drones/dronemenus.sp
+025c847f-d57e-4ba7-aef2-58ac12e43eaa=/home/keplyx/Documents/Sourcemod/cameras-and-drones/scripting/cameras-and-drones/dronemanager.sp
+dc377e39-4c6e-45cf-b337-d02e356122db=/home/keplyx/Documents/Sourcemod/cameras-and-drones/scripting/cameras-and-drones/init.sp

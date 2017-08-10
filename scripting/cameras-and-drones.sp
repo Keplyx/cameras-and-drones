@@ -32,19 +32,21 @@
 #include "cameras-and-drones/init.sp"
 
 /*  New in this version
-*	Added gear override commands + natives
-*	Added cvar to choose whether to use cameras angles for the player
-*	Fixed menu closing error when finishing a round inside camera/drone
+*	Added support for custom camera and drone models
+*	Added new commands in the help
+*	Added cvar to change the drone hover height
 *
 */
 
-#define VERSION "1.0.2"
+#define VERSION "1.1.0"
 #define AUTHOR "Keplyx"
 #define PLUGIN_NAME "Cameras and Drones"
 
 #define HIDEHUD_WEAPONSELECTION ( 1<<0 ) // Hide ammo count & weapon selection
 #define FFADE_STAYOUT       0x0008        // ignores the duration, stays faded out until new ScreenFade message received
 #define FFADE_PURGE         0x0010        // Purges all other fades, replacing them with this one
+
+#define customModelsPath "gamedata/cameras-and-drones/custom_models.txt"
 
 bool lateload;
 
@@ -61,6 +63,8 @@ int collisionOffsets;
 int boughtGear[MAXPLAYERS + 1];
 
 int playerGearOverride[MAXPLAYERS + 1];
+
+
 
 /************************************************************************************************************
  *											INIT
@@ -93,6 +97,7 @@ public void OnPluginStart()
 	
 	CreateConVars(VERSION);
 	RegisterCommands();
+	ReadCustomModelsFile();
 	
 	collisionOffsets = FindSendPropInfo("CBaseEntity", "m_CollisionGroup");
 	
@@ -113,9 +118,9 @@ public int GetCollOffset()
 
 public void OnMapStart()
 {
-	PrecacheModel(InCamModel, true);
-	PrecacheModel(dronePhysModel, true);
-	PrecacheModel(camPhysModel, true);
+	PrecacheModel(inCamModel, true);
+	PrecacheModel(defaultDronePhysModel, true);
+	PrecacheModel(defaultCamPhysModel, true);
 	
 	PrecacheSound(droneSound, true);
 	PrecacheSound(droneJumpSound, true);
@@ -179,7 +184,10 @@ public void InitVars()
 	
 	droneSpeed = cvar_dronespeed.FloatValue;
 	droneJumpForce = cvar_dronejump.FloatValue;
+	droneHoverHeight = cvar_dronehoverheight.FloatValue;
 	useCamAngles = cvar_usecamangles.BoolValue;
+	useCustomCamModel = cvar_usecustomcam_model.BoolValue;
+	useCustomDroneModel = cvar_usecustomdrone_model.BoolValue;
 	
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
@@ -335,6 +343,12 @@ public void PreventGearActivation(int client_index, int entity_index) // Prevent
  *											COMMANDS
  ************************************************************************************************************/
 
+public Action ReloadModelsList(int client_index, int args)
+{
+	ReadCustomModelsFile();
+	return Plugin_Handled;
+}
+
 public Action ShowHelp(int client_index, int args)
 {
 	PrintToConsole(client_index, "|-------------------------------------------------------|");
@@ -345,6 +359,12 @@ public Action ShowHelp(int client_index, int args)
 	PrintToConsole(client_index, "|cd_cam           |             |Open gear              |");
 	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
 	PrintToConsole(client_index, "|cd_help          |!cd_help     |Display this help      |");
+	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
+	PrintToConsole(client_index, "|-----------        ADMIN ONLY       -------------------|");
+	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
+	PrintToConsole(client_index, "|cd_override      |             |Override player gear   |");
+	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
+	PrintToConsole(client_index, "|cd_reloadmodels  |             |Reload custom models   |");
 	PrintToConsole(client_index, "|-------------------------------------------------------|");
 	PrintToConsole(client_index, "");
 	PrintToConsole(client_index, "For a better experience, you should bind cd_buy and cd_cam to a key:");
@@ -1150,4 +1170,122 @@ public void OnDroneJumpChange(ConVar convar, char[] oldValue, char[] newValue)
 public void OnUseCamAnglesChange(ConVar convar, char[] oldValue, char[] newValue)
 {
 	useCamAngles = convar.BoolValue;
+}
+
+public void OnUseCustomCamChange(ConVar convar, char[] oldValue, char[] newValue)
+{
+	useCustomCamModel = convar.BoolValue;
+}
+
+public void OnUseCustomDroneChange(ConVar convar, char[] oldValue, char[] newValue)
+{
+	useCustomDroneModel = convar.BoolValue;
+}
+
+public void OnDroneHoverHeightChange(ConVar convar, char[] oldValue, char[] newValue)
+{
+	droneHoverHeight = convar.FloatValue;
+}
+
+
+public void ReadCustomModelsFile()
+{
+	char path[PLATFORM_MAX_PATH], line[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, path, sizeof(path), "%s", customModelsPath);
+	File file = OpenFile(path, "r");
+	while (file.ReadLine(line, sizeof(line)))
+	{
+		if (StrContains(line, "//", false) == 0)
+			continue;
+		
+		if (StrContains(line, "cammodel=", false) == 0)
+			ReadModel(line, "cammodel=", 0)
+		if (StrContains(line, "camphys=", false) == 0)
+			ReadModel(line, "camphys=", 1)
+		else if (StrContains(line, "dronemodel=", false) == 0)
+			ReadModel(line, "dronemodel=", 2)
+		else if (StrContains(line, "dronephys=", false) == 0)
+			ReadModel(line, "dronephys=", 3)
+		else if (StrContains(line, "camrot{", false) == 0)
+			SetCustomRotation(file, false);
+		else if (StrContains(line, "dronerot{", false) == 0)
+			SetCustomRotation(file, true);
+		
+		if (file.EndOfFile())
+			break;
+	}
+	CloseHandle(file);
+}
+
+public void ReadModel(char line[PLATFORM_MAX_PATH], char[] trigger, int type)
+{
+	ReplaceString(line, sizeof(line), trigger, "", false);
+	ReplaceString(line, sizeof(line), "\n", "", false);
+	if (TryPrecacheCamModel(line))
+	{
+		switch (type)
+		{
+			case 0: Format(customCamModel, sizeof(customCamModel), "%s", line);
+			case 1: Format(customCamPhysModel, sizeof(customCamPhysModel), "%s", line);
+			case 2: Format(customDroneModel, sizeof(customDroneModel), "%s", line);
+			case 3: Format(customDronePhysModel, sizeof(customDronePhysModel), "%s", line);
+		}
+	}
+	else
+	{
+		switch (type)
+		{
+			case 0: customCamModel = "";
+			case 1: customCamPhysModel = "";
+			case 2: customDroneModel = "";
+			case 3: customDronePhysModel = "";
+		}
+	}
+}
+
+public void SetCustomRotation(File file, bool isDrone)
+{
+	char line[512];
+	while (file.ReadLine(line, sizeof(line)))
+	{
+		int i = 0;
+		if (StrContains(line, "x=", false) == 0)
+			ReplaceString(line, sizeof(line), "x=", "", false);
+		else if (StrContains(line, "y=", false) == 0)
+		{
+			ReplaceString(line, sizeof(line), "y=", "", false);
+			i = 1;
+		}
+		else if (StrContains(line, "z=", false) == 0)
+		{
+			ReplaceString(line, sizeof(line), "z=", "", false);
+			i = 2;
+		}
+		else if (StrContains(line, "}", false) == 0)
+			return;
+		ReplaceString(line, sizeof(line), "\n", "", false);
+		if (isDrone)
+		{
+			customDroneModelRot[i] = StringToFloat(line);
+			PrintToServer("Drone rotation: %i: %f", i, customDroneModelRot[i]);
+		}
+		else
+		{
+			customCamModelRot[i] = StringToFloat(line);
+			PrintToServer("Camera rotation: %i: %f", i, customCamModelRot[i]);
+		}
+	}
+}
+
+
+public bool TryPrecacheCamModel(char[] model)
+{
+	int result = PrecacheModel(model);
+	if (result < 1)
+	{
+		PrintToServer("Error precaching custom model '%s'. Falling back to default", model);
+		return false;
+	}
+	PrintToServer("Successfully precached custom model '%s'", model);
+	return true;
 }

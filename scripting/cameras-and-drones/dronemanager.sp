@@ -25,8 +25,8 @@ char openDroneSound[] = "weapons/movement3.wav";
 char destroyDroneSound[] = "physics/metal/metal_box_impact_bullet1.wav";
 
 char inDroneModel[] = "models/chicken/festive_egg.mdl"; // must have hitbox or it will use the default player one
-char droneModel[] = "models/weapons/w_eq_sensorgrenade_thrown.mdl";
-char dronePhysModel[] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl";
+char defaultDroneModel[] = "models/weapons/w_eq_sensorgrenade_thrown.mdl";
+char defaultDronePhysModel[] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl";
 
 ArrayList dronesList;
 ArrayList dronesModelList;
@@ -37,9 +37,15 @@ int fakePlayersListDrones[MAXPLAYERS + 1];
 int oldCollisionValueD[MAXPLAYERS + 1];
 
 float droneEyePosOffset = 5.0;
-float droneHoverHeight = 10.0;
+
+// Change with cvars
+float droneHoverHeight = 5.0;
 float droneSpeed = 200.0;
 float droneJumpForce = 300.0;
+bool useCustomDroneModel = false;
+float customDroneModelRot[3];
+char customDroneModel[PLATFORM_MAX_PATH];
+char customDronePhysModel[PLATFORM_MAX_PATH];
 
 bool isDroneGrounded[MAXPLAYERS + 1];
 bool isDroneMoving[MAXPLAYERS + 1];
@@ -66,7 +72,10 @@ public void CreateDrone(int client_index, float pos[3], float rot[3])
 	// Can be moved, must have a larger hitbox than the drone model (no stuck, easier pickup, easier target)
 	int drone = CreateEntityByName("prop_physics_override"); 
 	if (IsValidEntity(drone)) {
-		SetEntityModel(drone, dronePhysModel);
+		if (useCustomDroneModel && !StrEqual(customDronePhysModel, "", false))
+			SetEntityModel(drone, customDronePhysModel);
+		else
+			SetEntityModel(drone, defaultDronePhysModel);
 		DispatchKeyValue(drone, "solid", "6");
 		//DispatchKeyValue(drone, "overridescript", "mass,100.0,inertia,1.0,damping,1.0,rotdamping ,1.0"); // overwrite params
 		DispatchKeyValue(drone, "overridescript", "rotdamping,1000.0"); // Prevent drone rotation
@@ -85,7 +94,11 @@ public void CreateDroneModel(int client_index, int drone)
 	// This one can be animated/move with player
 	int model = CreateEntityByName("prop_dynamic_override"); 
 	if (IsValidEntity(model)) {
-		SetEntityModel(model, droneModel);
+		if (useCustomDroneModel && !StrEqual(customDroneModel, "", false))
+			SetEntityModel(model, customDroneModel);
+		else
+			SetEntityModel(model, defaultDroneModel);
+		
 		DispatchKeyValue(model, "solid", "0");
 		DispatchSpawn(model);
 		ActivateEntity(model);
@@ -93,7 +106,11 @@ public void CreateDroneModel(int client_index, int drone)
 		SetVariantString("!activator"); AcceptEntityInput(model, "SetParent", drone, model, 0);
 		
 		float pos[3], rot[3];
-		TeleportEntity(model, pos, rot, NULL_VECTOR);
+		if (useCustomDroneModel)
+			TeleportEntity(model, pos, customDroneModelRot, NULL_VECTOR);
+		else
+			TeleportEntity(model, pos, rot, NULL_VECTOR);
+		
 		SDKHook(model, SDKHook_SetTransmit, Hook_SetTransmitGear);
 		
 		AddDrone(drone, model, client_index);
@@ -140,7 +157,14 @@ public void Hook_PostThinkDrone(int client_index)
 	SetViewModel(client_index, false);
 	float rot[3];
 	GetClientEyeAngles(client_index, rot);
-	TeleportEntity(activeDrone[client_index][1], NULL_VECTOR, rot, NULL_VECTOR); // Model follows player rotation
+	if (useCustomDroneModel)
+	{
+		for (int i = 0; i < sizeof(rot); i++)
+		{
+			rot[i] += customDroneModelRot[i];
+		}
+	}
+	TeleportEntity(activeDrone[client_index][1], NULL_VECTOR, rot, NULL_VECTOR); // Model follows player rotation (with custom rotation offset)
 	
 	isDroneGrounded[client_index] = !(groundDistance > (droneHoverHeight + 1.0));
 	if (!isDroneMoving[client_index] || !isDroneGrounded[client_index])
@@ -221,7 +245,14 @@ public void TpToDrone(int client_index, int drone)
 	SetVariantString("!activator"); AcceptEntityInput(client_index, "SetParent", drone, client_index, 0);
 	float pos[3], rot[3];
 	GetEntPropVector(activeDrone[client_index][1], Prop_Send, "m_angRotation", rot);
-	TeleportEntity(client_index, pos, rot, NULL_VECTOR); // Get old rotation back
+	if (useCustomDroneModel)
+	{
+		for (int i = 0; i < sizeof(rot); i++)
+		{
+			rot[i] -= customDroneModelRot[i];
+		}
+	}
+	TeleportEntity(client_index, pos, rot, NULL_VECTOR); // Get old rotation back (with custom rotation offset)
 	// Set collisions
 	oldCollisionValueD[client_index] = GetEntData(client_index, GetCollOffset(), 1);
 	SetEntData(client_index, GetCollOffset(), 2, 4, true);
@@ -247,7 +278,6 @@ public void ExitDrone(int client_index)
 	// Set pos
 	AcceptEntityInput(client_index, "SetParent");
 	float pos[3], rot[3];
-	TeleportEntity(activeDrone[client_index][1], pos, rot, NULL_VECTOR); // Reset drone rot
 	GetEntPropVector(fakePlayersListDrones[client_index], Prop_Send, "m_vecOrigin", pos);
 	GetEntPropVector(fakePlayersListDrones[client_index], Prop_Send, "m_angRotation", rot);
 	TeleportEntity(client_index, pos, rot, NULL_VECTOR);

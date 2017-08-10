@@ -9,7 +9,7 @@ It is similar in some ways to Rainbow six siege.
 
 ## Installation
 
-Simply download **[cameras-and-drones.smx](https://github.com/Keplyx/cameras-and-drones/raw/master/cameras-and-drones.smx)** and place it in your server inside "csgo/addons/sourcemod/plugins/".
+Simply download **[cameras-and-drones.smx](https://github.com/Keplyx/cameras-and-drones/raw/master/plugins/cameras-and-drones.smx)** and place it in your server inside "csgo/addons/sourcemod/plugins/".
 A map is currently being made to work along with this plugin. [Get it here!](http://steamcommunity.com/sharedfiles/filedetails/?id=1102250426)
 
 ## Features
@@ -22,16 +22,20 @@ A map is currently being made to work along with this plugin. [Get it here!](htt
    * Can limit the number of drones/cameras per player
    * Can choose which team can use drones/cameras
    * Can choose if teammates are allowed to break your drones/cameras
-   
+   * Can choose your own camera/drone model
    
 
 ## [:globe_with_meridians: Cvars](https://github.com/Keplyx/cameras-and-drones/blob/master/cameras-and-drones.cfg)
 
 ## Commands
 
-
     "cd_buy" (buy gear from your team depending on the cvar)
     "cd_cam" (use the gear from your team)
+    "cd_help" (Show plugin help)
+    
+    ADMIN ONLY
+    "cd_override" (Override gear for a player)
+    "cd_reloadmodels" (Reload custom models file)
 
 ## Media
 ### Cameras
