@@ -26,7 +26,6 @@ char destroyDroneSound[] = "physics/metal/metal_box_impact_bullet1.wav";
 
 char inDroneModel[] = "models/chicken/festive_egg.mdl"; // must have hitbox or it will use the default player one
 char defaultDroneModel[] = "models/weapons/w_eq_sensorgrenade_thrown.mdl";
-char customDroneModel[512];
 char dronePhysModel[] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl";
 
 ArrayList dronesList;
@@ -36,14 +35,17 @@ int activeDrone[MAXPLAYERS + 1][2];
 int fakePlayersListDrones[MAXPLAYERS + 1];
 
 int oldCollisionValueD[MAXPLAYERS + 1];
-float customDroneModelRot[3];
 
 float droneEyePosOffset = 5.0;
-float droneHoverHeight = 10.0;
+
+// Change with cvars
+float droneHoverHeight = 5.0;
 float droneSpeed = 200.0;
 float droneJumpForce = 300.0;
-
 bool useCustomDroneModel = false;
+float customDroneModelRot[3];
+char customDroneModel[512];
+
 bool isDroneGrounded[MAXPLAYERS + 1];
 bool isDroneMoving[MAXPLAYERS + 1];
 
@@ -104,11 +106,6 @@ public void CreateDroneModel(int client_index, int drone)
 			TeleportEntity(model, pos, customDroneModelRot, NULL_VECTOR);
 		else
 			TeleportEntity(model, pos, rot, NULL_VECTOR);
-		
-		for (int i = 0; i < sizeof(rot); i++)
-		{
-			PrintToServer("customDroneModelRot[%i]=%f", i, customDroneModelRot[i])
-		}
 		
 		SDKHook(model, SDKHook_SetTransmit, Hook_SetTransmitGear);
 		

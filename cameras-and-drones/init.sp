@@ -34,10 +34,12 @@ ConVar cvar_tkprotect = null;
 
 ConVar cvar_dronespeed = null;
 ConVar cvar_dronejump = null;
+ConVar cvar_dronehoverheight = null;
 
 ConVar cvar_usecamangles = null;
 ConVar cvar_usecustomdrone_model = null;
 ConVar cvar_usecustomcam_model = null;
+
 
 public void CreateConVars(char[] version)
 {
@@ -59,8 +61,11 @@ public void CreateConVars(char[] version)
 	
 	cvar_dronespeed = CreateConVar("cd_dronespeed", "150", "Set the drone speed. 130 = human walk, 250 = human run", FCVAR_NOTIFY, true, 1.0, true, 500.0);
 	cvar_dronejump = CreateConVar("cd_dronejump", "300", "Set drone jump force", FCVAR_NOTIFY, true, 0.0, true, 500.0);
+	cvar_dronehoverheight = CreateConVar("cd_dronehoverheight", "5", "The hover height of your drone. Setting it too hight or too low will break the drone. It should match the phys model size.", FCVAR_NOTIFY, true, 1.0, true, 150.0);
 	cvar_dronespeed.AddChangeHook(OnDroneSpeedChange);
 	cvar_dronejump.AddChangeHook(OnDroneJumpChange);
+	cvar_dronehoverheight.AddChangeHook(OnDroneHoverHeightChange);
+	
 	
 	cvar_usecamangles = CreateConVar("cd_usecamangles", "1", "Set whether to use camera angles when using it.", FCVAR_NOTIFY, true, 0.0, true, 1.0); 
 	cvar_usecamangles.AddChangeHook(OnUseCamAnglesChange);

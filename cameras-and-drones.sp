@@ -184,6 +184,7 @@ public void InitVars()
 	
 	droneSpeed = cvar_dronespeed.FloatValue;
 	droneJumpForce = cvar_dronejump.FloatValue;
+	droneHoverHeight = cvar_dronehoverheight.FloatValue;
 	useCamAngles = cvar_usecamangles.BoolValue;
 	useCustomCamModel = cvar_usecustomcam_model.BoolValue;
 	useCustomDroneModel = cvar_usecustomdrone_model.BoolValue;
@@ -1175,6 +1176,10 @@ public void OnUseCustomDroneChange(ConVar convar, char[] oldValue, char[] newVal
 	useCustomDroneModel = convar.BoolValue;
 }
 
+public void OnDroneHoverHeightChange(ConVar convar, char[] oldValue, char[] newValue)
+{
+	droneHoverHeight = convar.FloatValue;
+}
 
 
 public void ReadCustomModelsFile()
