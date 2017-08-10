@@ -23,8 +23,9 @@
 char openCamSound[] = "weapons/movement3.wav";
 char destroyCamSound[] = "physics/metal/metal_box_impact_bullet1.wav";
 // MODELS
-char InCamModel[] = "models/chicken/festive_egg.mdl"; // must have hitbox or it will use the default player one
-char camModel[] = "models/weapons/w_eq_sensorgrenade_thrown.mdl";
+char inCamModel[] = "models/chicken/festive_egg.mdl"; // must have hitbox or it will use the default player one
+char defaultCamModel[] = "models/weapons/w_eq_sensorgrenade_thrown.mdl";
+char customCamModel[512];
 char camPhysModel[] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl"; // Must surround cam
 // LISTS
 ArrayList camerasList;
@@ -34,7 +35,9 @@ int activeCam[MAXPLAYERS + 1][3]; // 0: phys, 1: model, 2: flash
 int fakePlayersListCamera[MAXPLAYERS + 1];
 
 int oldCollisionValue[MAXPLAYERS + 1];
+float customCamModelRot[3];
 
+bool useCustomCamModel = false;
 bool useCamAngles = true;
 
 public void AddCamera(int cam, int model, int client_index)
@@ -75,14 +78,21 @@ public void CreateCameraModel(int client_index, int cam)
 {
 	int model = CreateEntityByName("prop_dynamic_override");
 	if (IsValidEntity(model)) {
-		SetEntityModel(model, camModel);
+		if (useCustomCamModel && !StrEqual(customCamModel, "", false))
+			SetEntityModel(model, customCamModel);
+		else
+			SetEntityModel(model, defaultCamModel);
+		
 		DispatchKeyValue(model, "solid", "0");
 		DispatchSpawn(model);
 		ActivateEntity(model);
 		
 		SetVariantString("!activator"); AcceptEntityInput(model, "SetParent", cam, model, 0);
 		float pos[3], rot[3];
-		TeleportEntity(model, pos, rot, NULL_VECTOR);
+		if (useCustomCamModel)
+			TeleportEntity(model, pos, customCamModelRot, NULL_VECTOR);
+		else
+			TeleportEntity(model, pos, rot, NULL_VECTOR);
 		
 		SDKHook(model, SDKHook_SetTransmit, Hook_SetTransmitGear);
 		AddCamera(cam, model, client_index);
@@ -162,7 +172,7 @@ public void TpToCam(int client_index, int cam)
 	}
 	SetGearScreen(client_index, true);
 	
-	SetEntityModel(client_index, InCamModel); // Set to a small model to prevent collisions/shots
+	SetEntityModel(client_index, inCamModel); // Set to a small model to prevent collisions/shots
 	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 0.0);
 	// Hooks

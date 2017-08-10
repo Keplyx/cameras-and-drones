@@ -46,6 +46,8 @@
 #define FFADE_STAYOUT       0x0008        // ignores the duration, stays faded out until new ScreenFade message received
 #define FFADE_PURGE         0x0010        // Purges all other fades, replacing them with this one
 
+#define customModelsPath "gamedata/cameras-and-drones/custom_models.txt"
+
 bool lateload;
 
 int clientsViewmodels[MAXPLAYERS + 1];
@@ -61,6 +63,8 @@ int collisionOffsets;
 int boughtGear[MAXPLAYERS + 1];
 
 int playerGearOverride[MAXPLAYERS + 1];
+
+
 
 /************************************************************************************************************
  *											INIT
@@ -93,6 +97,7 @@ public void OnPluginStart()
 	
 	CreateConVars(VERSION);
 	RegisterCommands();
+	ReadCustomModelsFile();
 	
 	collisionOffsets = FindSendPropInfo("CBaseEntity", "m_CollisionGroup");
 	
@@ -113,7 +118,7 @@ public int GetCollOffset()
 
 public void OnMapStart()
 {
-	PrecacheModel(InCamModel, true);
+	PrecacheModel(inCamModel, true);
 	PrecacheModel(dronePhysModel, true);
 	PrecacheModel(camPhysModel, true);
 	
@@ -180,6 +185,8 @@ public void InitVars()
 	droneSpeed = cvar_dronespeed.FloatValue;
 	droneJumpForce = cvar_dronejump.FloatValue;
 	useCamAngles = cvar_usecamangles.BoolValue;
+	useCustomCamModel = cvar_usecustomcam_model.BoolValue;
+	useCustomDroneModel = cvar_usecustomdrone_model.BoolValue;
 	
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
@@ -334,6 +341,12 @@ public void PreventGearActivation(int client_index, int entity_index) // Prevent
 /************************************************************************************************************
  *											COMMANDS
  ************************************************************************************************************/
+
+public Action ReloadModelsList(int client_index, int args)
+{
+	ReadCustomModelsFile();
+	return Plugin_Handled;
+}
 
 public Action ShowHelp(int client_index, int args)
 {
@@ -1150,4 +1163,77 @@ public void OnDroneJumpChange(ConVar convar, char[] oldValue, char[] newValue)
 public void OnUseCamAnglesChange(ConVar convar, char[] oldValue, char[] newValue)
 {
 	useCamAngles = convar.BoolValue;
+}
+
+public void OnUseCustomCamChange(ConVar convar, char[] oldValue, char[] newValue)
+{
+	useCustomCamModel = convar.BoolValue;
+}
+
+public void OnUseCustomDroneChange(ConVar convar, char[] oldValue, char[] newValue)
+{
+	useCustomDroneModel = convar.BoolValue;
+}
+
+
+
+public void ReadCustomModelsFile()
+{
+	char path[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, path, sizeof(path), "%s", customModelsPath);
+	File file = OpenFile(path, "r");
+	char line[512];
+	while (file.ReadLine(line, sizeof(line)))
+	{
+		if (StrContains(line, "//", false) == 0)
+			continue;
+		if (StrContains(line, "cam=", false) == 0)
+		{
+			ReplaceString(line, sizeof(line), "cam=", "", false);
+			ReplaceString(line, sizeof(line), "\n", "", false);
+			if (TryPrecacheCamModel(line))
+				Format(customCamModel, sizeof(customCamModel), "%s", line);
+			else
+				customCamModel = "";
+		}
+		if (StrContains(line, "camrot:", false) == 0)
+		{
+			while (file.ReadLine(line, sizeof(line)))
+			{
+				int i = 0;
+				if (StrContains(line, "x=", false) == 0)
+					ReplaceString(line, sizeof(line), "x=", "", false);
+				else if (StrContains(line, "y=", false) == 0)
+				{
+					ReplaceString(line, sizeof(line), "y=", "", false);
+					i = 1;
+				}
+				else if (StrContains(line, "z=", false) == 0)
+				{
+					ReplaceString(line, sizeof(line), "z=", "", false);
+					i = 2;
+				}
+				else
+					continue;
+				ReplaceString(line, sizeof(line), "\n", "", false);
+				customCamModelRot[i] = StringToFloat(line);
+				PrintToServer("%i: %f", i, customCamModelRot[i]);
+			}
+		}
+		if (file.EndOfFile())
+			break;
+	}
+	CloseHandle(file);
+}
+
+public bool TryPrecacheCamModel(char[] model)
+{
+	int result = PrecacheModel(model);
+	if (result < 1)
+	{
+		PrintToServer("Error precaching custom model '%s'. Falling back to default", model);
+		return false;
+	}
+	PrintToServer("Successfully precached custom model '%s'", model);
+	return true;
 }

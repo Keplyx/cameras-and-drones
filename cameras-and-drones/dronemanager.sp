@@ -41,6 +41,7 @@ float droneHoverHeight = 10.0;
 float droneSpeed = 200.0;
 float droneJumpForce = 300.0;
 
+bool useCustomDroneModel = false;
 bool isDroneGrounded[MAXPLAYERS + 1];
 bool isDroneMoving[MAXPLAYERS + 1];
 
