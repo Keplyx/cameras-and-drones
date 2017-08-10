@@ -65,10 +65,10 @@ public void CreateConVars(char[] version)
 	cvar_usecamangles = CreateConVar("cd_usecamangles", "1", "Set whether to use camera angles when using it.", FCVAR_NOTIFY, true, 0.0, true, 1.0); 
 	cvar_usecamangles.AddChangeHook(OnUseCamAnglesChange);
 	
-	cvar_usecustomdrone_model = CreateConVar("cd_usecustomdrone_model", "1", "Set whether to use a model specified in sourcemod/gamedata/custom_models.txt.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	cvar_usecustomdrone_model.AddChangeHook(OnUseCustomCamChange);
-	cvar_usecustomcam_model = CreateConVar("cd_usecustomcam_model", "1", "Set whether to use a model specified in sourcemod/gamedata/custom_models.txt.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	cvar_usecustomcam_model.AddChangeHook(OnUseCustomDroneChange);
+	cvar_usecustomdrone_model = CreateConVar("cd_usecustomdrone_model", "0", "Set whether to use a model specified in sourcemod/gamedata/custom_models.txt.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	cvar_usecustomdrone_model.AddChangeHook(OnUseCustomDroneChange);
+	cvar_usecustomcam_model = CreateConVar("cd_usecustomcam_model", "0", "Set whether to use a model specified in sourcemod/gamedata/custom_models.txt.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	cvar_usecustomcam_model.AddChangeHook(OnUseCustomCamChange);
 	
 	AutoExecConfig(true, "cameras-and-drones");
 }
