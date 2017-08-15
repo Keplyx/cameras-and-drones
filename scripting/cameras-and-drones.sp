@@ -303,12 +303,12 @@ public Action StartTouchGrenade(int entity1, int entity2)
 		
 		if (IsClientTeamCameras(owner))
 		{
-			if (availabletGear[owner] < cvar_totalmax_cam.IntValue && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
+			if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
 				return;
 		}
 		else if (IsClientTeamDrones(owner))
 		{
-			if (availabletGear[owner] < cvar_totalmax_drone.IntValue && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
+			if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
 				return;
 		}
 		
@@ -781,7 +781,7 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			else if (drone  != -1 && dronesOwnerList.Length > 0 && dronesOwnerList.Get(drone) == client_index)
 				PickupGear(client_index, drone);
 		}
-		if (buttons & IN_ATTACK) // Stop player from throwing the gear too far
+		if (buttons & IN_ATTACK && (availabletGear[client_index] > 0 || !cvar_usetagrenade.BoolValue)) // Stop player from throwing the gear too far
 		{
 			int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
 			char weapon_name[64];
