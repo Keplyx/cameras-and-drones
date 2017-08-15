@@ -60,7 +60,7 @@ bool isDroneJumping[MAXPLAYERS + 1];
 
 int collisionOffsets;
 
-int boughtGear[MAXPLAYERS + 1];
+int availabletGear[MAXPLAYERS + 1];
 
 int playerGearOverride[MAXPLAYERS + 1];
 
@@ -166,7 +166,7 @@ public void ResetPlayer(int client_index)
 		}
 	}
 	
-	boughtGear[client_index] = 0;
+	availabletGear[client_index] = 0;
 	canDisplayThrowWarning[client_index] = true;
 	canDroneJump[client_index] = true;
 	isDroneJumping[client_index] = false;
@@ -201,7 +201,7 @@ public void InitVars()
 		}
 		fakePlayersListCamera[i] = -1;
 		fakePlayersListDrones[i] = -1;
-		boughtGear[i] = 0;
+		availabletGear[i] = 0;
 		canDisplayThrowWarning[i] = true;
 		canDroneJump[i] = true;
 		isDroneJumping[i] = false;
@@ -300,6 +300,17 @@ public Action StartTouchGrenade(int entity1, int entity2)
 		GetEntPropVector(entity1, Prop_Send, "m_angRotation", rot);
 		int owner = GetEntPropEnt(entity1, Prop_Send, "m_hOwnerEntity");
 		
+		if (IsClientTeamCameras(owner))
+		{
+			if (availabletGear[owner] < cvar_totalmax_cam.IntValue && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
+				return;
+		}
+		else if (IsClientTeamDrones(owner))
+		{
+			if (availabletGear[owner] < cvar_totalmax_drone.IntValue && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
+				return;
+		}
+		
 		if (IsValidClient(entity2))
 		{
 			PreventGearActivation(owner, entity1);
@@ -319,6 +330,7 @@ public Action StartTouchGrenade(int entity1, int entity2)
 			CreateCamera(owner, pos, rot);
 		else if (IsClientTeamDrones(owner))
 			CreateDrone(owner, pos, rot);
+		availabletGear[owner]--;
 	}
 }
 
@@ -477,7 +489,7 @@ public Action BuyGear(int client_index, int args)
 
 public void BuyCamera(int client_index, bool isFree)
 {
-	if (boughtGear[client_index] >= 1)
+	if (availabletGear[client_index] >= 1)
 	{
 		PrintHintText(client_index, "<font color='#ff0000' size='30'>You already bought a camera</font>");
 		return;
@@ -494,12 +506,12 @@ public void BuyCamera(int client_index, bool isFree)
 	}
 	GivePlayerItem(client_index, gearWeapon);
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a camera</font>");
-	boughtGear[client_index]++;
+	availabletGear[client_index]++;
 }
 
 public void BuyDrone(int client_index, bool isFree)
 {
-	if (boughtGear[client_index] >= 1)
+	if (availabletGear[client_index] >= 1)
 	{
 		PrintHintText(client_index, "<font color='#ff0000' size='30'>You already bought a drone</font>");
 		return;
@@ -516,7 +528,7 @@ public void BuyDrone(int client_index, bool isFree)
 	}
 	GivePlayerItem(client_index, gearWeapon);
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a drone</font>");
-	boughtGear[client_index]++;
+	availabletGear[client_index]++;
 }
 
 public Action OpenGear(int client_index, int args) //Set player skin if authorized
@@ -687,6 +699,7 @@ public void PickupGear(int client_index, int i)
 		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue)
 			PickupDrone(client_index, drone);
 	}
+	availabletGear[client_index]++;
 }
 
 public void PickupCamera(int client_index, int cam)
@@ -778,7 +791,7 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 				buttons |= IN_ATTACK2;
 			}
 		}
-		if ((buttons & IN_ATTACK2)) // Prevent player from throwing too many gear
+		if ((buttons & IN_ATTACK2) && !cvar_usetagrenade.BoolValue) // Prevent player from throwing too many gear
 		{
 			int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
 			char weapon_name[64];

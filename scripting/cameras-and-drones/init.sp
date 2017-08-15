@@ -40,6 +40,7 @@ ConVar cvar_usecamangles = null;
 ConVar cvar_usecustomdrone_model = null;
 ConVar cvar_usecustomcam_model = null;
 
+ConVar cvar_usetagrenade = null;
 
 public void CreateConVars(char[] version)
 {
@@ -51,8 +52,8 @@ public void CreateConVars(char[] version)
 	cvar_camprice = CreateConVar("cd_camprice", "800", "Set cameras price. min = 0, max = 30000", FCVAR_NOTIFY, true, 0.0, true, 30000.0);
 	cvar_droneprice = CreateConVar("cd_droneprice", "800", "Set drones price. min = 0, max = 30000", FCVAR_NOTIFY, true, 0.0, true, 30000.0);
 	
-	cvar_totalmax_cam = CreateConVar("cd_totalmax_cam", "1", "Set the maximum cameras a player can setup. min = 1, max = 10", FCVAR_NOTIFY, true, 1.0, true, 10.0);
-	cvar_totalmax_drone = CreateConVar("cd_totalmax_drone", "1", "Set the maximum drones a player can setup. min = 1, max = 10", FCVAR_NOTIFY, true, 1.0, true, 10.0);
+	cvar_totalmax_cam = CreateConVar("cd_totalmax_cam", "1", "Set the maximum cameras a player can setup. Change 'ammo_grenade_limit_default' to change the number of gear a player can carry. min = 1, max = 10", FCVAR_NOTIFY, true, 1.0, true, 10.0);
+	cvar_totalmax_drone = CreateConVar("cd_totalmax_drone", "1", "Set the maximum drones a player can setup. Change 'ammo_grenade_limit_default' to change the number of gear a player can carry. min = 1, max = 10", FCVAR_NOTIFY, true, 1.0, true, 10.0);
 	
 	cvar_pickuprange = CreateConVar("cd_pickuprange", "150", "Set the max range at which a player can pickup its drone/cam. 0 = no pickup", FCVAR_NOTIFY, true, 0.0, true, 30000.0);
 	cvar_jumpcooldown = CreateConVar("cd_jumpcooldown", "1", "Set the time players must wait before jmping again with the drone.", FCVAR_NOTIFY, true, 0.0, true, 30000.0);
@@ -75,6 +76,8 @@ public void CreateConVars(char[] version)
 	cvar_usecustomcam_model = CreateConVar("cd_usecustomcam_model", "0", "Set whether to use a model specified in sourcemod/gamedata/custom_models.txt.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	cvar_usecustomcam_model.AddChangeHook(OnUseCustomCamChange);
 	
+	
+	cvar_usetagrenade = CreateConVar("cd_usetagrenade", "1", "Set whether to use TA-Grenades when gear not bought.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	AutoExecConfig(true, "cameras-and-drones");
 }
 
