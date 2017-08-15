@@ -138,6 +138,7 @@ public void OnConfigsExecuted()
 public void OnClientPostAdminCheck(int client_index)
 {
 	SDKHook(client_index, SDKHook_WeaponCanUse, Hook_WeaponCanUse);
+	SDKHook(client_index, SDKHook_WeaponSwitch, Hook_WeaponSwitch);
 	int ref = EntIndexToEntRef(client_index);
 	CreateTimer(3.0, Timer_WelcomeMessage, ref);
 }
@@ -920,7 +921,17 @@ public Action Hook_WeaponCanUse(int client_index, int weapon_index)
 	if (IsClientInGear(client_index))
 		return Plugin_Handled;
 	
-	
+	return Plugin_Continue;
+}
+
+public Action Hook_WeaponSwitch(int client_index, int weapon_index)  
+{
+	char name[64];
+	GetEdictClassname(weapon_index, name, sizeof(name));
+	if (StrEqual(name, gearWeapon, false) && availabletGear[client_index] > 0 && cvar_usetagrenade.BoolValue)
+	{
+		PrintHintText(client_index, "Available gear: %i", availabletGear[client_index]);
+	}
 	return Plugin_Continue;
 }
 
