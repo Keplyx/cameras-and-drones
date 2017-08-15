@@ -77,7 +77,7 @@ public void CreateConVars(char[] version)
 	cvar_usecustomcam_model.AddChangeHook(OnUseCustomCamChange);
 	
 	
-	cvar_usetagrenade = CreateConVar("cd_usetagrenade", "1", "Set whether to use TA-Grenades when gear not bought.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	cvar_usetagrenade = CreateConVar("cd_usetagrenade", "0", "Set whether to use TA-Grenades when gear not bought.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	AutoExecConfig(true, "cameras-and-drones");
 }
 

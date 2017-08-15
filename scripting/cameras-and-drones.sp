@@ -32,13 +32,12 @@
 #include "cameras-and-drones/init.sp"
 
 /*  New in this version
-*	Added support for custom camera and drone models
-*	Added new commands in the help
-*	Added cvar to change the drone hover height
+*	Added ability to choose whether to use tagrenades when no gear bought
+*	Changed buy restriction: you can now buy as much gear as you can place
 *
 */
 
-#define VERSION "1.1.0"
+#define VERSION "1.1.2"
 #define AUTHOR "Keplyx"
 #define PLUGIN_NAME "Cameras and Drones"
 
