@@ -61,6 +61,7 @@ bool isDroneJumping[MAXPLAYERS + 1];
 int collisionOffsets;
 
 int availabletGear[MAXPLAYERS + 1];
+ArrayList gearProjectiles;
 
 int playerGearOverride[MAXPLAYERS + 1];
 
@@ -182,6 +183,7 @@ public void InitVars()
 	dronesList = new ArrayList();
 	dronesModelList = new ArrayList();
 	dronesOwnerList = new ArrayList();
+	gearProjectiles = new ArrayList();
 	
 	droneSpeed = cvar_dronespeed.FloatValue;
 	droneJumpForce = cvar_dronejump.FloatValue;
@@ -301,6 +303,7 @@ public void OnProjectileSpawned (int entity_index)
 		if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
 			return;
 	}
+	gearProjectiles.Push(entity_index);
 	SDKHook(entity_index, SDKHook_StartTouch, StartTouchGrenade);
 }
 
@@ -327,6 +330,7 @@ public Action StartTouchGrenade(int entity1, int entity2)
 			}
 		}
 		
+		gearProjectiles.Erase(gearProjectiles.FindValue(entity1));
 		RemoveEdict(entity1);
 		if (IsClientTeamCameras(owner))
 			CreateCamera(owner, pos, rot);
@@ -885,7 +889,7 @@ public Action Timer_IsJumping(Handle timer, any ref)
  
 public Action NormalSoundHook(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags)
 {
-	if (IsValidEntity(entity))
+	if (IsValidEntity(entity) && gearProjectiles != null && gearProjectiles.FindValue(entity) != -1)
 	{
 		if (StrContains(sample, "sensor") != -1)
 			return Plugin_Stop;
