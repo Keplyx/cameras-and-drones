@@ -289,6 +289,18 @@ public void OnProjectileSpawned (int entity_index)
 		if (activeCam[i][2] == entity_index)
 			return;
 	}
+	
+	int owner = GetEntPropEnt(entity_index, Prop_Send, "m_hOwnerEntity");
+	if (IsClientTeamCameras(owner))
+	{
+		if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
+			return;
+	}
+	else if (IsClientTeamDrones(owner))
+	{
+		if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
+			return;
+	}
 	SDKHook(entity_index, SDKHook_StartTouch, StartTouchGrenade);
 }
 
@@ -300,17 +312,6 @@ public Action StartTouchGrenade(int entity1, int entity2)
 		GetEntPropVector(entity1, Prop_Send, "m_vecOrigin", pos);
 		GetEntPropVector(entity1, Prop_Send, "m_angRotation", rot);
 		int owner = GetEntPropEnt(entity1, Prop_Send, "m_hOwnerEntity");
-		
-		if (IsClientTeamCameras(owner))
-		{
-			if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
-				return;
-		}
-		else if (IsClientTeamDrones(owner))
-		{
-			if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
-				return;
-		}
 		
 		if (IsValidClient(entity2))
 		{
