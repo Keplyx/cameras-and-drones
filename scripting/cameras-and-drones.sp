@@ -32,13 +32,12 @@
 #include "cameras-and-drones/init.sp"
 
 /*  New in this version
-*	Added support for custom camera and drone models
-*	Added new commands in the help
-*	Added cvar to change the drone hover height
+*	Added ability to choose whether to use tagrenades when no gear bought
+*	Changed buy restriction: you can now buy as much gear as you can place
 *
 */
 
-#define VERSION "1.1.0"
+#define VERSION "1.1.2"
 #define AUTHOR "Keplyx"
 #define PLUGIN_NAME "Cameras and Drones"
 
@@ -60,7 +59,8 @@ bool isDroneJumping[MAXPLAYERS + 1];
 
 int collisionOffsets;
 
-int boughtGear[MAXPLAYERS + 1];
+int availabletGear[MAXPLAYERS + 1];
+ArrayList gearProjectiles;
 
 int playerGearOverride[MAXPLAYERS + 1];
 
@@ -138,6 +138,7 @@ public void OnConfigsExecuted()
 public void OnClientPostAdminCheck(int client_index)
 {
 	SDKHook(client_index, SDKHook_WeaponCanUse, Hook_WeaponCanUse);
+	SDKHook(client_index, SDKHook_WeaponSwitch, Hook_WeaponSwitch);
 	int ref = EntIndexToEntRef(client_index);
 	CreateTimer(3.0, Timer_WelcomeMessage, ref);
 }
@@ -166,7 +167,7 @@ public void ResetPlayer(int client_index)
 		}
 	}
 	
-	boughtGear[client_index] = 0;
+	availabletGear[client_index] = 0;
 	canDisplayThrowWarning[client_index] = true;
 	canDroneJump[client_index] = true;
 	isDroneJumping[client_index] = false;
@@ -181,6 +182,7 @@ public void InitVars()
 	dronesList = new ArrayList();
 	dronesModelList = new ArrayList();
 	dronesOwnerList = new ArrayList();
+	gearProjectiles = new ArrayList();
 	
 	droneSpeed = cvar_dronespeed.FloatValue;
 	droneJumpForce = cvar_dronejump.FloatValue;
@@ -201,7 +203,7 @@ public void InitVars()
 		}
 		fakePlayersListCamera[i] = -1;
 		fakePlayersListDrones[i] = -1;
-		boughtGear[i] = 0;
+		availabletGear[i] = 0;
 		canDisplayThrowWarning[i] = true;
 		canDroneJump[i] = true;
 		isDroneJumping[i] = false;
@@ -288,6 +290,19 @@ public void OnProjectileSpawned (int entity_index)
 		if (activeCam[i][2] == entity_index)
 			return;
 	}
+	
+	int owner = GetEntPropEnt(entity_index, Prop_Send, "m_hOwnerEntity");
+	if (IsClientTeamCameras(owner))
+	{
+		if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
+			return;
+	}
+	else if (IsClientTeamDrones(owner))
+	{
+		if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
+			return;
+	}
+	gearProjectiles.Push(entity_index);
 	SDKHook(entity_index, SDKHook_StartTouch, StartTouchGrenade);
 }
 
@@ -314,11 +329,13 @@ public Action StartTouchGrenade(int entity1, int entity2)
 			}
 		}
 		
+		gearProjectiles.Erase(gearProjectiles.FindValue(entity1));
 		RemoveEdict(entity1);
 		if (IsClientTeamCameras(owner))
 			CreateCamera(owner, pos, rot);
 		else if (IsClientTeamDrones(owner))
 			CreateDrone(owner, pos, rot);
+		availabletGear[owner]--;
 	}
 }
 
@@ -477,7 +494,7 @@ public Action BuyGear(int client_index, int args)
 
 public void BuyCamera(int client_index, bool isFree)
 {
-	if (boughtGear[client_index] >= 1)
+	if (availabletGear[client_index] >= 1)
 	{
 		PrintHintText(client_index, "<font color='#ff0000' size='30'>You already bought a camera</font>");
 		return;
@@ -494,12 +511,12 @@ public void BuyCamera(int client_index, bool isFree)
 	}
 	GivePlayerItem(client_index, gearWeapon);
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a camera</font>");
-	boughtGear[client_index]++;
+	availabletGear[client_index]++;
 }
 
 public void BuyDrone(int client_index, bool isFree)
 {
-	if (boughtGear[client_index] >= 1)
+	if (availabletGear[client_index] >= 1)
 	{
 		PrintHintText(client_index, "<font color='#ff0000' size='30'>You already bought a drone</font>");
 		return;
@@ -516,7 +533,7 @@ public void BuyDrone(int client_index, bool isFree)
 	}
 	GivePlayerItem(client_index, gearWeapon);
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a drone</font>");
-	boughtGear[client_index]++;
+	availabletGear[client_index]++;
 }
 
 public Action OpenGear(int client_index, int args) //Set player skin if authorized
@@ -687,6 +704,7 @@ public void PickupGear(int client_index, int i)
 		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue)
 			PickupDrone(client_index, drone);
 	}
+	availabletGear[client_index]++;
 }
 
 public void PickupCamera(int client_index, int cam)
@@ -767,7 +785,7 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			else if (drone  != -1 && dronesOwnerList.Length > 0 && dronesOwnerList.Get(drone) == client_index)
 				PickupGear(client_index, drone);
 		}
-		if (buttons & IN_ATTACK) // Stop player from throwing the gear too far
+		if (buttons & IN_ATTACK && (availabletGear[client_index] > 0 || !cvar_usetagrenade.BoolValue)) // Stop player from throwing the gear too far
 		{
 			int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
 			char weapon_name[64];
@@ -778,7 +796,7 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 				buttons |= IN_ATTACK2;
 			}
 		}
-		if ((buttons & IN_ATTACK2)) // Prevent player from throwing too many gear
+		if ((buttons & IN_ATTACK2) && !cvar_usetagrenade.BoolValue) // Prevent player from throwing too many gear
 		{
 			int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
 			char weapon_name[64];
@@ -870,7 +888,7 @@ public Action Timer_IsJumping(Handle timer, any ref)
  
 public Action NormalSoundHook(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags)
 {
-	if (IsValidEntity(entity))
+	if (IsValidEntity(entity) && gearProjectiles != null && gearProjectiles.FindValue(entity) != -1)
 	{
 		if (StrContains(sample, "sensor") != -1)
 			return Plugin_Stop;
@@ -907,7 +925,17 @@ public Action Hook_WeaponCanUse(int client_index, int weapon_index)
 	if (IsClientInGear(client_index))
 		return Plugin_Handled;
 	
-	
+	return Plugin_Continue;
+}
+
+public Action Hook_WeaponSwitch(int client_index, int weapon_index)  
+{
+	char name[64];
+	GetEdictClassname(weapon_index, name, sizeof(name));
+	if (StrEqual(name, gearWeapon, false) && availabletGear[client_index] > 0 && cvar_usetagrenade.BoolValue)
+	{
+		PrintHintText(client_index, "Available gear: %i", availabletGear[client_index]);
+	}
 	return Plugin_Continue;
 }
 

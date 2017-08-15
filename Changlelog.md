@@ -1,3 +1,7 @@
+* **Version 1.1.2**
+  * Added ability to choose whether to use tagrenades when no gear bought
+  * Changed buy restriction: you can now buy as much gear as you can place
+
 * **Version 1.1.0**
   * Added support for custom camera and drone models
   * Added new commands in the help
