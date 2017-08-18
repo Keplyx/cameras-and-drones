@@ -72,10 +72,7 @@ public void CreateDrone(int client_index, float pos[3], float rot[3])
 	// Can be moved, must have a larger hitbox than the drone model (no stuck, easier pickup, easier target)
 	int drone = CreateEntityByName("prop_physics_override"); 
 	if (IsValidEntity(drone)) {
-		if (useCustomDroneModel && !StrEqual(customDronePhysModel, "", false))
-			SetEntityModel(drone, customDronePhysModel);
-		else
-			SetEntityModel(drone, defaultDronePhysModel);
+		SetDroneModel(drone);
 		DispatchKeyValue(drone, "solid", "6");
 		//DispatchKeyValue(drone, "overridescript", "mass,100.0,inertia,1.0,damping,1.0,rotdamping ,1.0"); // overwrite params
 		DispatchKeyValue(drone, "overridescript", "rotdamping,1000.0"); // Prevent drone rotation
@@ -88,6 +85,15 @@ public void CreateDrone(int client_index, float pos[3], float rot[3])
 		CreateDroneModel(client_index, drone);
 	}
 }
+
+public void SetDroneModel(int drone)
+{
+	if (useCustomDroneModel && !StrEqual(customDronePhysModel, "", false))
+		SetEntityModel(drone, customDronePhysModel);
+	else
+		SetEntityModel(drone, defaultDronePhysModel);
+}
+
 
 public void CreateDroneModel(int client_index, int drone)
 {

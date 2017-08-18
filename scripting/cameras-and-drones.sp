@@ -32,12 +32,11 @@
 #include "cameras-and-drones/init.sp"
 
 /*  New in this version
-*	Added ability to choose whether to use tagrenades when no gear bought
-*	Changed buy restriction: you can now buy as much gear as you can place
+*	Changed native description
 *
 */
 
-#define VERSION "1.1.2"
+#define VERSION "1.1.3"
 #define AUTHOR "Keplyx"
 #define PLUGIN_NAME "Cameras and Drones"
 
@@ -296,11 +295,13 @@ public void OnProjectileSpawned (int entity_index)
 	{
 		if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
 			return;
+		SetCameraModel(entity_index);
 	}
 	else if (IsClientTeamDrones(owner))
 	{
 		if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
 			return;
+		SetDroneModel(entity_index);
 	}
 	gearProjectiles.Push(entity_index);
 	SDKHook(entity_index, SDKHook_StartTouch, StartTouchGrenade);
