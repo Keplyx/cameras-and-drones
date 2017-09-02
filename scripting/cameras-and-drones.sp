@@ -776,7 +776,7 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 	}
 	else // normal player input
 	{
-		if (buttons & IN_USE) // pickup
+		if (buttons & IN_USE && camerasList != INVALID_HANDLE && dronesList != INVALID_HANDLE) // pickup
 		{
 			int target = GetClientAimTarget(client_index, false);
 			int cam = camerasList.FindValue(target);
