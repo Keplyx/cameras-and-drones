@@ -24,7 +24,8 @@
  
 
 /**
- * Buy the gear (camera or drone) depending on the player team
+ * Give player the gear (camera or drone) depending on its team
+ * It is the same as the command cd_buy but without using money.
  *
  * @param client	Client index.
  * @return

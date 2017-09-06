@@ -62,10 +62,7 @@ public void CreateCamera(int client_index, float pos[3], float rot[3])
 {
 	int cam = CreateEntityByName("prop_dynamic_override");
 	if (IsValidEntity(cam)) {
-		if (useCustomCamModel && !StrEqual(customCamPhysModel, "", false))
-			SetEntityModel(cam, customCamPhysModel);
-		else
-			SetEntityModel(cam, defaultCamPhysModel);
+		SetCameraModel(cam);
 		DispatchKeyValue(cam, "solid", "6");
 		DispatchSpawn(cam);
 		ActivateEntity(cam);
@@ -76,6 +73,14 @@ public void CreateCamera(int client_index, float pos[3], float rot[3])
 		SetEntityRenderMode(cam, RENDER_NONE);
 		CreateCameraModel(client_index, cam);
 	}
+}
+
+public void SetCameraModel(int cam)
+{
+	if (useCustomCamModel && !StrEqual(customCamPhysModel, "", false))
+		SetEntityModel(cam, customCamPhysModel);
+	else
+		SetEntityModel(cam, defaultCamPhysModel);
 }
 
 public void CreateCameraModel(int client_index, int cam)
