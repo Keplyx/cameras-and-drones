@@ -962,7 +962,10 @@ public Action Hook_TakeDamageGear(int victim, int &attacker, int &inflictor, flo
 
 public Action Hook_TakeDamagePlayer(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	return Plugin_Handled;
+	if (IsClientInGear(victim))
+		return Plugin_Handled;
+	else
+		return Plugin_Continue;
 }
 
 public Action CommandDrop(int client_index, const char[] command, int argc)
@@ -1221,6 +1224,15 @@ public void ReadCustomModelsFile()
 {
 	char path[PLATFORM_MAX_PATH], line[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, path, sizeof(path), "%s", customModelsPath);
+	if (!FileExists(path))
+	{
+		customCamModel = "";
+		customCamPhysModel = "";
+		customDroneModel = "";
+		customDronePhysModel = "";
+		PrintToServer("Could not find custom models file. Falling back to default");
+		return;
+	}
 	File file = OpenFile(path, "r");
 	while (file.ReadLine(line, sizeof(line)))
 	{
