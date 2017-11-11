@@ -962,7 +962,10 @@ public Action Hook_TakeDamageGear(int victim, int &attacker, int &inflictor, flo
 
 public Action Hook_TakeDamagePlayer(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	return Plugin_Handled;
+	if (IsClientInGear(victim))
+		return Plugin_Handled;
+	else
+		return Plugin_Continue;
 }
 
 public Action CommandDrop(int client_index, const char[] command, int argc)
