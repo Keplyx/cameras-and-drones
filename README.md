@@ -5,7 +5,7 @@ Use this gear to lay traps to your enemies!
 
 It is similar in some ways to Rainbow six siege.
 
-## [:globe_with_meridians: Watch the video!](https://www.youtube.com/watch?v=SPmatCAUfrI)
+## [Watch the video!](https://www.youtube.com/watch?v=SPmatCAUfrI)
 
 ## Installation
 
@@ -25,7 +25,7 @@ A map is currently being made to work along with this plugin. [Get it here!](htt
    * Can choose your own camera/drone model
    
 
-## [:globe_with_meridians: Cvars](https://github.com/Keplyx/cameras-and-drones/blob/master/cameras-and-drones.cfg)
+## [Cvars](https://github.com/Keplyx/cameras-and-drones/blob/master/cameras-and-drones.cfg)
 
 ## Commands
 
@@ -45,6 +45,6 @@ A map is currently being made to work along with this plugin. [Get it here!](htt
 ![20170723130846_1](https://user-images.githubusercontent.com/23726131/28498867-566f530e-6fa8-11e7-953f-25e849555676.jpg)
 ![20170723130906_1](https://user-images.githubusercontent.com/23726131/28498868-566fd0f4-6fa8-11e7-8513-9124cd78351f.jpg)
 
-## [:globe_with_meridians: Changlelog](https://github.com/Keplyx/cameras-and-drones/blob/master/Changlelog.md)
+## [Changlelog](https://github.com/Keplyx/cameras-and-drones/blob/master/Changlelog.md)
 
 ### Creator: Keplyx
