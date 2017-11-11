@@ -1224,6 +1224,15 @@ public void ReadCustomModelsFile()
 {
 	char path[PLATFORM_MAX_PATH], line[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, path, sizeof(path), "%s", customModelsPath);
+	if (!FileExists(path))
+	{
+		customCamModel = "";
+		customCamPhysModel = "";
+		customDroneModel = "";
+		customDronePhysModel = "";
+		PrintToServer("Could not find custom models file. Falling back to default");
+		return;
+	}
 	File file = OpenFile(path, "r");
 	while (file.ReadLine(line, sizeof(line)))
 	{
