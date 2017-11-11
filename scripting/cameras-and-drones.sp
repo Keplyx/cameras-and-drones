@@ -32,11 +32,12 @@
 #include "cameras-and-drones/init.sp"
 
 /*  New in this version
-*	Changed native description
+*	Fixed player not taking damage after finishing round in gear
+*	Fixed plugin crash on start when custom_models file was not present
 *
 */
 
-#define VERSION "1.1.3"
+#define VERSION "1.1.4"
 #define AUTHOR "Keplyx"
 #define PLUGIN_NAME "Cameras and Drones"
 

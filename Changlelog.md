@@ -1,3 +1,10 @@
+* **Version 1.1.4**
+  * Fixed player not taking damage after finishing round in gear
+  * Fixed plugin crash on start when custom_models file was not present
+
+* **Version 1.1.3**
+  * Changed native description
+
 * **Version 1.1.2**
   * Added ability to choose whether to use tagrenades when no gear bought
   * Changed buy restriction: you can now buy as much gear as you can place
