@@ -50,6 +50,7 @@ bool lateload;
 int clientsViewmodels[MAXPLAYERS + 1];
 
 char gearWeapon[] = "weapon_tagrenade";
+char gearOverlay[] = "vgui/screens/vgui_overlay";
 
 bool canDisplayThrowWarning[MAXPLAYERS + 1];
 bool canDroneJump[MAXPLAYERS + 1];
@@ -1425,6 +1426,12 @@ public void SetGearScreen(int client, bool isActive)
 	if (!IsClientInGame(client) || !IsPlayerAlive(client))
 		return;
 	
+	if (isActive)
+		DisplayOverlay(client, gearOverlay);
+	else
+		ClearOverlay(client);
+	
+	
 	int duration = 255;
 	int holdtime = 255;
 	int color[4];
@@ -1637,4 +1644,31 @@ public bool TryPrecacheCamModel(char[] model)
 	}
 	PrintToServer("Successfully precached custom model '%s'", model);
 	return true;
+}
+
+/**
+* displays an overlay to the client.
+*
+* @param client_index			index of the client.
+* @param file index				file to display.
+*/
+public void DisplayOverlay(int client_index, char[] file)
+{
+	if (IsValidClient(client_index)){
+		ClientCommand(client_index, "r_screenoverlay \"%s.vtf\"", file);
+		PrintToServer("Displaying decal");
+	}
+}
+
+/**
+* clears all overlays for the specified client.
+*
+* @param client_index			index of the client.
+*/
+public void ClearOverlay(int client_index)
+{
+	if (IsValidClient(client_index)){
+		ClientCommand(client_index, "r_screenoverlay \"\"");
+		PrintToServer("Cleared decal");
+	}
 }
