@@ -32,10 +32,12 @@
 #include "cameras-and-drones/init.sp"
 
 /*  New in this version
+*	Added overlay while in gear
+*	Improved drone rotation control
 *
 */
 
-#define VERSION "1.1.4"
+#define VERSION "1.1.5"
 #define AUTHOR "Keplyx"
 #define PLUGIN_NAME "Cameras and Drones"
 
@@ -1654,10 +1656,8 @@ public bool TryPrecacheCamModel(char[] model)
 */
 public void DisplayOverlay(int client_index, char[] file)
 {
-	if (IsValidClient(client_index)){
+	if (IsValidClient(client_index))
 		ClientCommand(client_index, "r_screenoverlay \"%s.vtf\"", file);
-		PrintToServer("Displaying decal");
-	}
 }
 
 /**
@@ -1667,8 +1667,6 @@ public void DisplayOverlay(int client_index, char[] file)
 */
 public void ClearOverlay(int client_index)
 {
-	if (IsValidClient(client_index)){
+	if (IsValidClient(client_index))
 		ClientCommand(client_index, "r_screenoverlay \"\"");
-		PrintToServer("Cleared decal");
-	}
 }

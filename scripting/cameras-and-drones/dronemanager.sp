@@ -48,6 +48,7 @@ char customDroneModel[PLATFORM_MAX_PATH];
 char customDronePhysModel[PLATFORM_MAX_PATH];
 
 bool isDroneGrounded[MAXPLAYERS + 1];
+bool fixedRotation[MAXPLAYERS + 1];
 bool isDroneMoving[MAXPLAYERS + 1];
 
  /**
@@ -203,9 +204,9 @@ public void JumpDrone(int client_index, int drone)
  */
 public void Hook_PostThinkDrone(int client_index)
 {
-	if (activeDrone[client_index][0] < 0)
-		return
 	int drone = activeDrone[client_index][0];
+	if (drone < 0)
+		return;
 	float groundDistance = DistanceToGround(drone);
 	
 	LowerDroneView(client_index);
@@ -213,6 +214,7 @@ public void Hook_PostThinkDrone(int client_index)
 	SetViewModel(client_index, false);
 	float rot[3];
 	GetClientEyeAngles(client_index, rot);
+	rot[2] = 0.0;
 	if (useCustomDroneModel)
 	{
 		for (int i = 0; i < sizeof(rot); i++)
@@ -224,14 +226,61 @@ public void Hook_PostThinkDrone(int client_index)
 	
 	isDroneGrounded[client_index] = !(groundDistance > (droneHoverHeight + 1.0));
 	if (!isDroneMoving[client_index] || !isDroneGrounded[client_index])
+	{
+		fixedRotation[client_index] = false;
 		return;
-	
-	float pos[3], nullRot[3], vel[3];
+	}
+	float pos[3], vel[3], nullRot[3];
 	GetEntPropVector(drone, Prop_Send, "m_vecOrigin", pos);
 	GetEntPropVector(drone, Prop_Data, "m_vecVelocity", vel);
 	pos[2] += droneHoverHeight - groundDistance;
+	if (!isDroneFixed(drone) && !fixedRotation[client_index])
+		FixDroneRotation(client_index, drone);
+	
 	if (vel[2] >= 0.0)
 		TeleportEntity(drone, pos, nullRot, NULL_VECTOR);
+}
+
+ /**
+ * Check if the drone rotation is locked at 0,0,0.
+ *
+ * @param drone			index of the drone.
+ * @return				true if drone if locked, false otherwise.
+ */
+public bool isDroneFixed(int drone)
+{
+	float rot[3];
+	float offset = 1.0;
+	GetEntPropVector(drone, Prop_Send, "m_angRotation", rot);
+	
+	for (int i = 0; i < sizeof(rot); i++)
+	{
+		if (rot[0] < -offset || rot[0] > offset)
+			return false;
+	}
+	return true;
+}
+
+ /**
+ * Fixes the player's view to prevent disorienting him when reseting the drone's to 0,0,0.
+ * Adds the current player rotation with the drone's to calculate the new player rotation.
+ *
+ * @param client_index			index of the client.
+ * @param drone					index of the drone.
+ */
+public void FixDroneRotation(int client_index, int drone)
+{
+	float clientRot[3], droneRot[3], nullRot[3], newRot[3];
+	GetEntPropVector(drone, Prop_Send, "m_angRotation", droneRot);
+	GetClientEyeAngles(client_index, clientRot);
+	for (int i = 0; i < sizeof(droneRot); i++)
+	{
+		newRot[i] = clientRot[i] + newRot[i];
+	}
+	newRot[2] = 0.0;
+	TeleportEntity(drone, NULL_VECTOR, nullRot, NULL_VECTOR);
+	TeleportEntity(client_index, NULL_VECTOR, newRot, NULL_VECTOR);
+	fixedRotation[client_index] = true;
 }
 
  /**
@@ -315,14 +364,12 @@ public void TpToDrone(int client_index, int drone)
 	SetEntityModel(client_index, inDroneModel); // Set to a small model to prevent collisions/shots
 	SetGearScreen(client_index, true);
 	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
-	// Hooks
-	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
-	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
-	SDKHook(client_index, SDKHook_OnTakeDamage, Hook_TakeDamagePlayer);
+	
 	// Set pos
 	SetVariantString("!activator"); AcceptEntityInput(client_index, "SetParent", drone, client_index, 0);
 	float pos[3], rot[3];
 	GetEntPropVector(activeDrone[client_index][1], Prop_Send, "m_angRotation", rot);
+	rot[2] = 0.0;
 	if (useCustomDroneModel)
 	{
 		for (int i = 0; i < sizeof(rot); i++)
@@ -335,6 +382,11 @@ public void TpToDrone(int client_index, int drone)
 	oldCollisionValueD[client_index] = GetEntData(client_index, GetCollOffset(), 1);
 	SetEntData(client_index, GetCollOffset(), 2, 4, true);
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 2);
+	
+	// Hooks
+	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
+	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
+	SDKHook(client_index, SDKHook_OnTakeDamage, Hook_TakeDamagePlayer);
 	
 	// Sound
 	EmitSoundToAll(droneSound, drone, SNDCHAN_AUTO, SNDLEVEL_CAR, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
