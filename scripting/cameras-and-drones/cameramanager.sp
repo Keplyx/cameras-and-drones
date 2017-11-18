@@ -41,6 +41,13 @@ float customCamModelRot[3];
 bool useCustomCamModel = false;
 bool useCamAngles = true;
 
+ /**
+ * Add a new camera to the list.
+ *
+ * @param cam					camera index.
+ * @param model					camera model index.
+ * @param client_index			owner client index.
+ */
 public void AddCamera(int cam, int model, int client_index)
 {
 	camerasList.Push(cam);
@@ -48,6 +55,11 @@ public void AddCamera(int cam, int model, int client_index)
 	camOwnersList.Push(client_index);
 }
 
+ /**
+ * Removes the given camera from the list.
+ *
+ * @param cam			camera index.
+ */
 public void RemoveCameraFromList(int cam)
 {
 	int i = camerasList.FindValue(cam);
@@ -58,11 +70,18 @@ public void RemoveCameraFromList(int cam)
 	camOwnersList.Erase(i);
 }
 
+ /**
+ * Creates the camera physics prop.
+ *
+ * @param client_index			index of the client.
+ * @param pos					position of the camera to create.
+ * @param rot					rotation of the camera to create.
+ */
 public void CreateCamera(int client_index, float pos[3], float rot[3])
 {
 	int cam = CreateEntityByName("prop_dynamic_override");
 	if (IsValidEntity(cam)) {
-		SetCameraModel(cam);
+		SetCameraPhysicsModel(cam);
 		DispatchKeyValue(cam, "solid", "6");
 		DispatchSpawn(cam);
 		ActivateEntity(cam);
@@ -75,7 +94,13 @@ public void CreateCamera(int client_index, float pos[3], float rot[3])
 	}
 }
 
-public void SetCameraModel(int cam)
+ /**
+ * Sets the camera physics model.
+ * Uses a custom model if cvar set and custom model valid.
+ *
+ * @param cam			index of the camera.
+ */
+public void SetCameraPhysicsModel(int cam)
 {
 	if (useCustomCamModel && !StrEqual(customCamPhysModel, "", false))
 		SetEntityModel(cam, customCamPhysModel);
@@ -83,6 +108,14 @@ public void SetCameraModel(int cam)
 		SetEntityModel(cam, defaultCamPhysModel);
 }
 
+ /**
+ * Creates the camera model prop.
+ * This prop isn't solid and is parented to the physics model.
+ * Uses a custom model if cvar set and custom model valid.
+ *
+ * @param client_index			index of the client.
+ * @param cam					index of the camera.
+ */
 public void CreateCameraModel(int client_index, int cam)
 {
 	int model = CreateEntityByName("prop_dynamic_override");
@@ -108,6 +141,12 @@ public void CreateCameraModel(int client_index, int cam)
 	}
 }
 
+ /**
+ * Creates the flashing light sprite if none already exists for the selected camera.
+ *
+ * @param client_index			index of the client.
+ * @param cam					index of the camera.
+ */
 public void CreateFlash(int client_index, int cam)
 {
 	for (int i = 1; i <= MAXPLAYERS; i++)
@@ -140,6 +179,11 @@ public void CreateFlash(int client_index, int cam)
 	}
 }
 
+ /**
+ * Destroys the flashing light sprite if no other players are viewing this camera.
+ *
+ * @param client_index			index of the client.
+ */
 public void DestroyFlash(int client_index)
 {
 	if (!IsValidEntity(activeCam[client_index][2]))
@@ -156,6 +200,11 @@ public void DestroyFlash(int client_index)
 	activeCam[client_index][2] = -1;
 }
 
+ /**
+ * If the player is in a camera, hide the viewmodel and the guns from the hud, and lower the view.
+ *
+ * @param client_index			index of the client.
+ */
 public void Hook_PostThinkCam(int client_index)
 {
 	if (activeCam[client_index][0] < 0)
@@ -166,12 +215,25 @@ public void Hook_PostThinkCam(int client_index)
 	LowerCameraView(client_index);
 }
 
+ /**
+ * Lower the player view to match the camera position.
+ *
+ * @param client_index			index of the client.
+ */
 public void LowerCameraView(int client_index)
 {
 	float viewPos[3];
 	SetEntPropVector(client_index, Prop_Data, "m_vecViewOffset", viewPos);
 }
 
+ /**
+ * Teleports the player to the selected camera.
+ * It creates a fake player at his old position.
+ * The teleported player is frozen, not solid, and invicible.
+ *
+ * @param client_index			index of the client.
+ * @param cam					index of the camera.
+ */
 public void TpToCam(int client_index, int cam)
 {
 	if (fakePlayersListCamera[client_index] < 1)
@@ -213,6 +275,13 @@ public void TpToCam(int client_index, int cam)
 	CreateFlash(client_index, cam);
 }
 
+ /**
+ * Teleports the player from the camera to his old postion (fake player position).
+ * It deletes the fake player.
+ * The teleported player gets normal properties (collisions, movement).
+ *
+ * @param client_index			index of the client.
+ */
 public void ExitCam(int client_index)
 {
 	SetGearScreen(client_index, false);
@@ -247,6 +316,13 @@ public void ExitCam(int client_index)
 	EmitSoundToClient(client_index, openCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 }
 
+ /**
+ * Destroys the selected camera.
+ * If a player is using it, closes the camera first.
+ *
+ * @param cam					index of the camera.
+ * @param isSilent				whether to play a destroy sound.
+ */
 public void DestroyCamera(int cam, bool isSilent)
 {
 	if (!isSilent)

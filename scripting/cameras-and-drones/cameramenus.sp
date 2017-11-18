@@ -23,6 +23,10 @@
 
 Menu playerCamMenus[MAXPLAYERS + 1];
 
+ /**
+ * Creates the cameras menu for the given player.
+ * This menu lets the player choose which camera he wants to use, and shows him which one he is currently using.
+ */
 public void Menu_Cameras(int client_index, int args)
 {
 	playerCamMenus[client_index] = new Menu(MenuHandler_Cameras);
@@ -50,6 +54,10 @@ public void Menu_Cameras(int client_index, int args)
 	playerCamMenus[client_index].Display(client_index, MENU_TIME_FOREVER);
 }
 
+ /**
+ * Handler for cameras menu.
+ * Teleports the player to the camera associated to the menu entry, or exits the current camera on cancel.
+ */
 public int MenuHandler_Cameras(Menu menu, MenuAction action, int param1, int params)
 {
 	if (action == MenuAction_Select)
@@ -73,6 +81,9 @@ public int MenuHandler_Cameras(Menu menu, MenuAction action, int param1, int par
 		delete menu;
 }
 
+ /**
+ * Deletes the given player's cameras menu.
+ */
 public void ResetCamerasMenuPlayer(int client_index)
 {
 	if (playerCamMenus[client_index] != null)
@@ -82,6 +93,9 @@ public void ResetCamerasMenuPlayer(int client_index)
 	}
 }
 
+ /**
+ * Deletes cameras menus for every players.
+ */
 public void ResetCamerasMenuAll()
 {
 	for (int i = 0; i <= MAXPLAYERS; i++)

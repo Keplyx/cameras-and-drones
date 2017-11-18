@@ -50,6 +50,13 @@ char customDronePhysModel[PLATFORM_MAX_PATH];
 bool isDroneGrounded[MAXPLAYERS + 1];
 bool isDroneMoving[MAXPLAYERS + 1];
 
+ /**
+ * Add a new drone to the list.
+ *
+ * @param drone					drone index.
+ * @param model					drone model index.
+ * @param client_index			owner client index.
+ */
 public void AddDrone(int drone, int model, int client_index)
 {
 	dronesList.Push(drone);
@@ -57,6 +64,11 @@ public void AddDrone(int drone, int model, int client_index)
 	dronesOwnerList.Push(client_index);
 }
 
+ /**
+ * Removes the given drone from the list.
+ *
+ * @param drone				drone index.
+ */
 public void RemoveDroneFromList(int drone)
 {
 	int i = dronesList.FindValue(drone);
@@ -67,12 +79,19 @@ public void RemoveDroneFromList(int drone)
 	dronesOwnerList.Erase(i);
 }
 
+ /**
+ * Creates the drone physics model.
+ *
+ * @param client_index			index of the client.
+ * @param pos					position of the drone to create.
+ * @param rot					rotation of the drone to create.
+ */
 public void CreateDrone(int client_index, float pos[3], float rot[3])
 {
 	// Can be moved, must have a larger hitbox than the drone model (no stuck, easier pickup, easier target)
 	int drone = CreateEntityByName("prop_physics_override"); 
 	if (IsValidEntity(drone)) {
-		SetDroneModel(drone);
+		SetDronePhysicsModel(drone);
 		DispatchKeyValue(drone, "solid", "6");
 		//DispatchKeyValue(drone, "overridescript", "mass,100.0,inertia,1.0,damping,1.0,rotdamping ,1.0"); // overwrite params
 		DispatchKeyValue(drone, "overridescript", "rotdamping,1000.0"); // Prevent drone rotation
@@ -86,7 +105,13 @@ public void CreateDrone(int client_index, float pos[3], float rot[3])
 	}
 }
 
-public void SetDroneModel(int drone)
+ /**
+ * Sets the drone physics model.
+ * Uses a custom model if cvar set and custom model valid.
+ *
+ * @param drone			index of the drone.
+ */
+public void SetDronePhysicsModel(int drone)
 {
 	if (useCustomDroneModel && !StrEqual(customDronePhysModel, "", false))
 		SetEntityModel(drone, customDronePhysModel);
@@ -94,7 +119,14 @@ public void SetDroneModel(int drone)
 		SetEntityModel(drone, defaultDronePhysModel);
 }
 
-
+ /**
+ * Creates the drone model prop.
+ * This prop isn't solid and is parented to the physics model.
+ * Uses a custom model if cvar set and custom model valid.
+ *
+ * @param client_index			index of the client.
+ * @param drone					index of the drone.
+ */
 public void CreateDroneModel(int client_index, int drone)
 {
 	// This one can be animated/move with player
@@ -123,6 +155,12 @@ public void CreateDroneModel(int client_index, int drone)
 	}
 }
 
+ /**
+ * If the drone is grounded, move it in the player's view direction.
+ *
+ * @param client_index				index of the client.
+ * @param drone						index of the drone.
+ */
 public void MoveDrone(int client_index, int drone)
 {
 	if (isDroneGrounded[client_index])
@@ -136,6 +174,12 @@ public void MoveDrone(int client_index, int drone)
 	}
 }
 
+ /**
+ * If the drone is grounded, jump in the player's view direction and emit a jump sound.
+ *
+ * @param client_index				index of the client.
+ * @param drone						index of the drone.
+ */
 public void JumpDrone(int client_index, int drone)
 {
 	if (isDroneGrounded[client_index])
@@ -151,6 +195,12 @@ public void JumpDrone(int client_index, int drone)
 	}
 }
 
+ /**
+ * If the player is in a drone, hide the viewmodel and the guns from the hud, and lower the view.
+ * Also sets the position of the drone in order for it to fly over the ground.
+ *
+ * @param client_index			index of the client.
+ */
 public void Hook_PostThinkDrone(int client_index)
 {
 	if (activeDrone[client_index][0] < 0)
@@ -184,6 +234,11 @@ public void Hook_PostThinkDrone(int client_index)
 		TeleportEntity(drone, pos, nullRot, NULL_VECTOR);
 }
 
+ /**
+ * Lower the player view to match the drone position.
+ *
+ * @param client_index			index of the client.
+ */
 public void LowerDroneView(int client_index)
 {
 	float viewPos[3];
@@ -191,6 +246,12 @@ public void LowerDroneView(int client_index)
 	SetEntPropVector(client_index, Prop_Data, "m_vecViewOffset", viewPos);
 }
 
+ /**
+ * Calculates the distance to the ground from the center of the entity.
+ *
+ * @param client_index				index of the client.
+ * @return 							distance from the entity to the ground. 999.0 if no end point is found.
+ */
 public float DistanceToGround(int entity_index)
 {
 	float flPos[3], flAng[3];
@@ -212,6 +273,9 @@ public float DistanceToGround(int entity_index)
 	return 999.0;
 }
 
+ /**
+ * Filter for trace ray ignoring players and the given data.
+ */
 public bool TraceFilterIgnorePlayers(int entity_index, int mask, any data)
 {
 	if((entity_index >= 1 && entity_index <= MaxClients) || entity_index == data)
@@ -221,6 +285,14 @@ public bool TraceFilterIgnorePlayers(int entity_index, int mask, any data)
 	return true;
 } 
 
+ /**
+ * Teleports the player to the selected drone.
+ * It creates a fake player at his old position.
+ * The teleported player is frozen, not solid, and invicible.
+ *
+ * @param client_index			index of the client.
+ * @param drone					index of the drone.
+ */
 public void TpToDrone(int client_index, int drone)
 {
 	// Allow for drone to drone switch
@@ -268,6 +340,13 @@ public void TpToDrone(int client_index, int drone)
 	EmitSoundToAll(droneSound, drone, SNDCHAN_AUTO, SNDLEVEL_CAR, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 }
 
+ /**
+ * Teleports the player from the drone to his old postion (fake player position).
+ * It deletes the fake player.
+ * The teleported player gets normal properties (collisions, movement).
+ *
+ * @param client_index			index of the client.
+ */
 public void ExitDrone(int client_index)
 {
 	// Set appearance
@@ -300,6 +379,13 @@ public void ExitDrone(int client_index)
 	activeDrone[client_index][1] = -1;
 }
 
+ /**
+ * Destroys the selected drone.
+ * If a player is using it, closes the drone first.
+ *
+ * @param drone					index of the drone.
+ * @param isSilent				whether to play a destroy sound.
+ */
 public void DestroyDrone(int drone, bool isSilent)
 {
 	if (!isSilent)

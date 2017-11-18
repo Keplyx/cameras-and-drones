@@ -329,13 +329,13 @@ public void OnProjectileSpawned (int entity_index)
 	{
 		if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
 			return;
-		SetCameraModel(entity_index);
+		SetCameraPhysicsModel(entity_index);
 	}
 	else if (IsClientTeamDrones(owner))
 	{
 		if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
 			return;
-		SetDroneModel(entity_index);
+		SetDronePhysicsModel(entity_index);
 	}
 	gearProjectiles.Push(entity_index);
 	SDKHook(entity_index, SDKHook_StartTouch, StartTouchGrenade);
