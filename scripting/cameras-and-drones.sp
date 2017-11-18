@@ -32,8 +32,6 @@
 #include "cameras-and-drones/init.sp"
 
 /*  New in this version
-*	Fixed player not taking damage after finishing round in gear
-*	Fixed plugin crash on start when custom_models file was not present
 *
 */
 
@@ -116,6 +114,9 @@ public int GetCollOffset()
 	return collisionOffsets;
 }
 
+/**
+ * Precache models and sounds when the map starts.
+ */
 public void OnMapStart()
 {
 	PrecacheModel(inCamModel, true);
@@ -130,11 +131,11 @@ public void OnMapStart()
 	PrecacheSound(destroyCamSound, true);
 }
 
-public void OnConfigsExecuted()
-{
-	// Nothing yet
-}
-
+/**
+ * Hook player weapons and creates a timer to display the welcome message.
+ *
+ * @param client_index    index of the client disconnecting.
+ */
 public void OnClientPostAdminCheck(int client_index)
 {
 	SDKHook(client_index, SDKHook_WeaponCanUse, Hook_WeaponCanUse);
@@ -143,11 +144,21 @@ public void OnClientPostAdminCheck(int client_index)
 	CreateTimer(3.0, Timer_WelcomeMessage, ref);
 }
 
+/**
+ * Resets the player on disconect to prevent problems when new player with same index connects.
+ *
+ * @param client_index    index of the client disconnecting.
+ */
 public void OnClientDisconnect(int client_index)
 {
 	ResetPlayer(client_index);
 }
 
+/**
+ * Resets variables associated to the given player.
+ *
+ * @param client_index    index of the client to reset.
+ */
 public void ResetPlayer(int client_index)
 {
 	if (dronesList != null)
@@ -174,6 +185,10 @@ public void ResetPlayer(int client_index)
 	playerGearOverride[client_index] = 0;
 }
 
+/**
+ * Initializes variables with default values.
+ *
+ */
 public void InitVars()
 {
 	camerasList = new ArrayList();
@@ -257,6 +272,9 @@ public int Native_OverridePlayerGear(Handle plugin, int numParams)
  *											EVENTS
  ************************************************************************************************************/
 
+/**
+ * Resets variables and closes player menus on round start.
+ */
 public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
 {
 	InitVars();
@@ -264,6 +282,9 @@ public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast
 	ResetCamerasMenuAll();
 }
 
+/**
+ * Gets the player's view model index for future usage.
+ */
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client_index = GetClientOfUserId(GetEventInt(event, "userid"));
@@ -274,6 +295,12 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
  *											Detect Gear
  ************************************************************************************************************/
 
+/**
+ * Hooks tactical grenades spawn.
+ *
+ * @param entity_index    index of the entity created.
+ * @param classname    classname of the entity created.
+ */
 public void OnEntityCreated(int entity_index, const char[] classname)
 {
 	if (StrEqual(classname, "tagrenade_projectile", false))
@@ -282,6 +309,12 @@ public void OnEntityCreated(int entity_index, const char[] classname)
 	}
 }
 
+/**
+ * If the spawned projectile is not being used as a flashing light for cameras
+ * and can be used as gear, set its model and hook its touch even.
+ *
+ * @param entity_index    index of the entity spawned.
+ */
 public void OnProjectileSpawned (int entity_index)
 {
 	// Do not hook flash
@@ -308,6 +341,13 @@ public void OnProjectileSpawned (int entity_index)
 	SDKHook(entity_index, SDKHook_StartTouch, StartTouchGrenade);
 }
 
+/**
+ * If the touched entity is not a player,
+ * create a camera/drone at the touch position.
+ *
+ * @param entity1    index of the grenade.
+ * @param entity2    index of the touched entity.
+ */
 public Action StartTouchGrenade(int entity1, int entity2)
 {
 	if (IsValidEdict(entity1))
@@ -341,6 +381,12 @@ public Action StartTouchGrenade(int entity1, int entity2)
 	}
 }
 
+/**
+ * Delete the given entity and displays an error message to the given player.
+ *
+ * @param entity1    index of the entity owner.
+ * @param entity2    index of the entity.
+ */
 public void PreventGearActivation(int client_index, int entity_index) // Prevent gear acivation if gear hits player
 {
 	float pos[3];
@@ -362,12 +408,18 @@ public void PreventGearActivation(int client_index, int entity_index) // Prevent
  *											COMMANDS
  ************************************************************************************************************/
 
+/**
+ * Reads the custom models file.
+ */
 public Action ReloadModelsList(int client_index, int args)
 {
 	ReadCustomModelsFile();
 	return Plugin_Handled;
 }
 
+/**
+ * Displays help to the player in console and chat.
+ */
 public Action ShowHelp(int client_index, int args)
 {
 	PrintToConsole(client_index, "|-------------------------------------------------------|");
@@ -404,6 +456,10 @@ public Action ShowHelp(int client_index, int args)
 	return Plugin_Handled;
 }
 
+/**
+ * Overrides the given player's gear.
+ * This way you can have a ct using a camera while his team uses drones.
+ */
 public Action OverrideGear(int client_index, int args)
 {
 	if (args == 0)
@@ -484,6 +540,9 @@ public Action OverrideGear(int client_index, int args)
 	return Plugin_Handled;
 }
 
+/**
+ * Buys the correct gear for the player.
+ */
 public Action BuyGear(int client_index, int args)
 {
 	if (IsClientTeamCameras(client_index))
@@ -494,6 +553,12 @@ public Action BuyGear(int client_index, int args)
 	return Plugin_Handled;
 }
 
+/**
+ * Gives the given player a camera if he has enough money and doesn't already have one.
+ *
+ * @param client_index    index of the client.
+ * @param isFree    whether to give the camera for free or not.
+ */
 public void BuyCamera(int client_index, bool isFree)
 {
 	if (availabletGear[client_index] >= 1)
@@ -516,6 +581,12 @@ public void BuyCamera(int client_index, bool isFree)
 	availabletGear[client_index]++;
 }
 
+/**
+ * Gives the given player a drone if he has enough money and doesn't already have one.
+ *
+ * @param client_index    index of the client.
+ * @param isFree    whether to give the drone for free or not.
+ */
 public void BuyDrone(int client_index, bool isFree)
 {
 	if (availabletGear[client_index] >= 1)
@@ -538,6 +609,9 @@ public void BuyDrone(int client_index, bool isFree)
 	availabletGear[client_index]++;
 }
 
+/**
+ * Opens the camera or drone depending on the player gear.
+ */
 public Action OpenGear(int client_index, int args) //Set player skin if authorized
 {
 	if (IsClientTeamCameras(client_index))
@@ -548,6 +622,13 @@ public Action OpenGear(int client_index, int args) //Set player skin if authoriz
 	return Plugin_Handled;
 }
 
+/**
+ * If the given player is not in the air and at least one camera is available,
+ * puts the player in his camera, or in an other one available if the player doesn't have any.
+ * If the given player is already in a camera, close it.
+ *
+ * @param client_index    index of the client.
+ */
 public void OpenCamera(int client_index)
 {
 	if (IsClientInCam(client_index))
@@ -586,6 +667,13 @@ public void OpenCamera(int client_index)
 	TpToCam(client_index, target);
 }
 
+/**
+ * If the given player is not in the air and has at least one drone available,
+ * puts the player in one of his drones.
+ * If the given player is already in a drone, close it.
+ *
+ * @param client_index    index of the client.
+ */
 public void OpenDrone(int client_index)
 {
 	if (IsClientInDrone(client_index))
@@ -631,6 +719,12 @@ public void OpenDrone(int client_index)
  *											GEAR SPECIFIC METHODS
  ************************************************************************************************************/
 
+/**
+ * Checks if the given player can throw his camera/drone.
+ *
+ * @param client_index		index of the client.
+ * @return 					true if the player can throw his gear, false otherwise.
+ */
 public bool CanThrowGear(int client_index)
 {
 	if (IsClientTeamCameras(client_index))
@@ -641,6 +735,13 @@ public bool CanThrowGear(int client_index)
 		return false;
 }
 
+/**
+ * If the given player hasn't reached the camera limit, allow him to throw more.
+ * Otherwise, display an error message.
+ *
+ * @param client_index		index of the client.
+ * @return 					true if the player can throw the camera, false otherwise.
+ */
 public bool CanThrowCamera(int client_index)
 {
 	int counter;
@@ -664,6 +765,13 @@ public bool CanThrowCamera(int client_index)
 	}
 }
 
+/**
+ * If the given player hasn't reached the drone limit, allow him to throw more.
+ * Otherwise, display an error message.
+ *
+ * @param client_index		index of the client.
+ * @return 					true if the player can throw the drone, false otherwise.
+ */
 public bool CanThrowDrone(int client_index)
 {
 	int counter;
@@ -687,6 +795,13 @@ public bool CanThrowDrone(int client_index)
 	}
 }
 
+/**
+ * If the given player is close enough of his gear (chosen by cvar),
+ * allow him to pick it up.
+ *
+ * @param client_index		index of the client.
+ * @param i					index of the gear in its list.
+ */
 public void PickupGear(int client_index, int i)
 {
 	float pos[3], gearPos[3];
@@ -709,6 +824,12 @@ public void PickupGear(int client_index, int i)
 	availabletGear[client_index]++;
 }
 
+/**
+ * Destroys the given camera and gives one back to the player.
+ *
+ * @param client_index		index of the client.
+ * @param cam				index of the camera.
+ */
 public void PickupCamera(int client_index, int cam)
 {
 	DestroyCamera(cam, true);
@@ -716,13 +837,24 @@ public void PickupCamera(int client_index, int cam)
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>Camera recovered</font>");
 }
 
-public void PickupDrone(int client_index, int cam)
+/**
+ * Destroys the given drone and gives one back to the player.
+ *
+ * @param client_index		index of the client.
+ * @param drone				index of the drone.
+ */
+public void PickupDrone(int client_index, int drone)
 {
-	DestroyDrone(cam, true);
+	DestroyDrone(drone, true);
 	GivePlayerItem(client_index, gearWeapon);
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>Drone recovered</font>");
 }
 
+/**
+ * Closes the camera/drone for the given player.
+ *
+ * @param client_index		index of the client.
+ */
 public void CloseGear(int client_index)
 {
 	if (IsClientTeamCameras(client_index))
@@ -730,6 +862,12 @@ public void CloseGear(int client_index)
 	else if (IsClientTeamDrones(client_index))
 		CloseDrone(client_index);
 }
+
+/**
+ * Exits the camera for the given player and closes the cameras menu.
+ *
+ * @param client_index		index of the client.
+ */
 public void CloseCamera(int client_index)
 {
 	ExitCam(client_index);
@@ -740,6 +878,11 @@ public void CloseCamera(int client_index)
 	}
 }
 
+/**
+ * Exits the drone for the given player and closes the drones menu.
+ *
+ * @param client_index		index of the client.
+ */
 public void CloseDrone(int client_index)
 {
 	ExitDrone(client_index);
@@ -841,7 +984,10 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 /************************************************************************************************************
  *											TIMERS
  ************************************************************************************************************/
- 
+
+/**
+ * Displays a welcome message to the given player, presenting the plugin name, author and how to show help.
+ */ 
 public Action Timer_WelcomeMessage(Handle timer, any ref)
 {
 	int client_index = EntRefToEntIndex(ref);
@@ -857,6 +1003,9 @@ public Action Timer_WelcomeMessage(Handle timer, any ref)
 	}
 }
 
+/**
+ * Resets the throw warning variable for the given player.
+ */
 public Action Timer_DisplayThrowWarning(Handle timer, any ref)
 {
 	int client_index = EntRefToEntIndex(ref);
@@ -866,6 +1015,9 @@ public Action Timer_DisplayThrowWarning(Handle timer, any ref)
 	}
 }
 
+/**
+ * Resets the can jump variable for the given player.
+ */
 public Action Timer_CanJump(Handle timer, any ref)
 {
 	int client_index = EntRefToEntIndex(ref);
@@ -875,6 +1027,9 @@ public Action Timer_CanJump(Handle timer, any ref)
 	}
 }
 
+/**
+ * Resets the is drone jumping variable for the given player.
+ */
 public Action Timer_IsJumping(Handle timer, any ref)
 {
 	int client_index = EntRefToEntIndex(ref);
@@ -888,6 +1043,9 @@ public Action Timer_IsJumping(Handle timer, any ref)
  *											HOOKS
  ************************************************************************************************************/
  
+ /**
+ * Stops tactical grenade sounds only for cameras and drones.
+ */
 public Action NormalSoundHook(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags)
 {
 	if (IsValidEntity(entity) && gearProjectiles != null && gearProjectiles.FindValue(entity) != -1)
@@ -898,7 +1056,10 @@ public Action NormalSoundHook(int clients[64], int &numClients, char sample[PLAT
 	return Plugin_Continue;
 }
 
-public Action Hook_SetTransmitPlayer(int entity_index, int client_index) // hide player only if using cam/drone
+ /**
+ * Hide player only if using cam/drone.
+ */
+public Action Hook_SetTransmitPlayer(int entity_index, int client_index)
 {
 	if (client_index != entity_index && IsValidClient(entity_index) && IsClientInGear(entity_index))
 		return Plugin_Handled;
@@ -906,7 +1067,10 @@ public Action Hook_SetTransmitPlayer(int entity_index, int client_index) // hide
 	return Plugin_Continue;
 }
 
-public Action Hook_SetTransmitGear(int entity_index, int client_index) // Hide cam/drone only to the one using it
+ /**
+ * Hide cam/drone only to the one using it.
+ */
+public Action Hook_SetTransmitGear(int entity_index, int client_index)
 {
 	if (IsValidClient(client_index) && ((activeCam[client_index][1] == entity_index || activeCam[client_index][2] == entity_index) || activeDrone[client_index][1] == entity_index))
 		return Plugin_Handled;
@@ -914,6 +1078,9 @@ public Action Hook_SetTransmitGear(int entity_index, int client_index) // Hide c
 	return Plugin_Continue;
 }
 
+ /**
+ * Transmits damage given to the fake model to its owner.
+ */
 public Action Hook_TakeDamageFakePlayer(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
 	int owner = GetEntPropEnt(victim, Prop_Send, "m_hOwnerEntity");
@@ -922,6 +1089,9 @@ public Action Hook_TakeDamageFakePlayer(int victim, int &attacker, int &inflicto
 	RemoveHealth(owner, damage, attacker, damagetype, weapon);
 }
 
+ /**
+ * Prevents player in camera/drone from picking up weapons.
+ */
 public Action Hook_WeaponCanUse(int client_index, int weapon_index)  
 {
 	if (IsClientInGear(client_index))
@@ -930,6 +1100,9 @@ public Action Hook_WeaponCanUse(int client_index, int weapon_index)
 	return Plugin_Continue;
 }
 
+ /**
+ * If player switches to his gear, display how many he has available.
+ */
 public Action Hook_WeaponSwitch(int client_index, int weapon_index)  
 {
 	char name[64];
@@ -941,6 +1114,10 @@ public Action Hook_WeaponSwitch(int client_index, int weapon_index)
 	return Plugin_Continue;
 }
 
+ /**
+ * Destroy the gear if an enemy or the owner is shooting at it,
+ * or if a teammate is shooting at it and tk is enabled (with a cvar).
+ */
 public Action Hook_TakeDamageGear(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
 	int client_index = -1;
@@ -961,6 +1138,9 @@ public Action Hook_TakeDamageGear(int victim, int &attacker, int &inflictor, flo
 	return Plugin_Continue;
 }
 
+ /**
+ * Prevent players in gear from taking damage.
+ */
 public Action Hook_TakeDamagePlayer(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
 	if (IsClientInGear(victim))
@@ -969,6 +1149,9 @@ public Action Hook_TakeDamagePlayer(int victim, int &attacker, int &inflictor, f
 		return Plugin_Continue;
 }
 
+ /**
+ * Stops drop command if the player is in gear and prevents player from dropping his gear weapon.
+ */
 public Action CommandDrop(int client_index, const char[] command, int argc)
 {
 	if (IsClientInGear(client_index))
@@ -983,6 +1166,9 @@ public Action CommandDrop(int client_index, const char[] command, int argc)
 	return Plugin_Continue;
 }
 
+ /**
+ * Resets player variables if switching teams while in gear.
+ */
 public Action CommandJoinTeam(int client_index, const char[] command, int argc)
 {
 	if (IsClientInGear(client_index))
@@ -994,6 +1180,15 @@ public Action CommandJoinTeam(int client_index, const char[] command, int argc)
  *											FAKE PLAYER RELATED
  ************************************************************************************************************/
 
+ /**
+ * Removes the specified health to the given player, and kills him if his health is lower than the damage taken.
+ *
+ * @param client_index		index of the client taking damage.
+ * @param damage			damage to deal to the player.
+ * @param attacker			index of the player doing damage.
+ * @param damagetype		damage type received by the player.
+ * @param weapon			classname of the weapon with which the attacked is shooting.
+ */
 public void RemoveHealth(int client_index, float damage, int attacker, int damagetype, char[] weapon)
 {
 	
@@ -1009,6 +1204,15 @@ public void RemoveHealth(int client_index, float damage, int attacker, int damag
 	}
 }
 
+ /**
+ * Deals damage to the given player.
+ *
+ * @param client_index		index of the client taking damage.
+ * @param damage			damage to deal to the player.
+ * @param attacker			index of the player doing damage.
+ * @param dmgType			damage type received by the player.
+ * @param weapon			classname of the weapon with which the attacked is shooting.
+ */
 public void DealDamage(int victim, int damage, int attacker, int dmgType, char[] weapon)
 {
 	if(victim > 0 && IsValidEdict(victim) && IsClientInGame(victim) && IsPlayerAlive(victim) && damage > 0)
@@ -1039,6 +1243,15 @@ public void DealDamage(int victim, int damage, int attacker, int dmgType, char[]
 	}
 }
 
+ /**
+ * Creates a fake player model for the given player.
+ * This model will not have any animation, but will redirect the damage taken to the player.
+ * The fake player is solid (even for teammates) and uses the model hitbox, instead of player collision box
+ * (This means you can climb on a standing fake player).
+ *
+ * @param client_index		index of the client.
+ * @param isCam				whether the player is using a camera or a drone.
+ */
 public void CreateFakePlayer(int client_index, bool isCam)
 {
 	int fake = CreateEntityByName("prop_dynamic_override");
@@ -1073,6 +1286,12 @@ public void CreateFakePlayer(int client_index, bool isCam)
  *											TESTS
  ************************************************************************************************************/
 
+ /**
+ * Returns whether the given weapon is used as gear or not.
+ *
+ * @param weapon_index		index of the weapon.
+ * @return					true if the weapon is used for gear, false otherwise.
+ */
 public bool IsWeaponGear(int weapon_index)
 {
 	char weapon_name[64];
@@ -1080,31 +1299,71 @@ public bool IsWeaponGear(int weapon_index)
 	return StrEqual(weapon_name, gearWeapon, false);
 }
 
+ /**
+ * Checks whether the given player is using his gear or not.
+ *
+ * @param client_index		index of the client.
+ * @return					true if the player is using his gear, false otherwise.
+ */
 public bool IsClientInGear(int client_index)
 {
 	return IsClientInCam(client_index) || IsClientInDrone(client_index);
 }
 
+ /**
+ * Checks whether the given player is using his camera or not.
+ *
+ * @param client_index		index of the client.
+ * @return					true if the player is using his camera, false otherwise.
+ */
 public bool IsClientInCam(int client_index)
 {
 	return activeCam[client_index][0] > MAXPLAYERS;
 }
 
+ /**
+ * Checks whether the given player is using his drone or not.
+ *
+ * @param client_index		index of the client.
+ * @return					true if the player is using his drone, false otherwise.
+ */
 public bool IsClientInDrone(int client_index)
 {
 	return activeDrone[client_index][0] > MAXPLAYERS;
 }
 
+ /**
+ * Checks if the given player's team gear is cameras.
+ * Also checks if the player's gear has been overriden.
+ *
+ * @param client_index		index of the client.
+ * @return					true if the player gear is cameras, false otherwise.
+ */
 public bool IsClientTeamCameras(int client_index)
 {
 	return playerGearOverride[client_index] != -1 && GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) == cvar_gearteam.IntValue || cvar_gearteam.IntValue == 1) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 1);
 }
 
+ /**
+ * Checks if the given player's team gear is drones.
+ * Also checks if the player's gear has been overriden.
+ *
+ * @param client_index		index of the client.
+ * @return					true if the player gear is drones, false otherwise.
+ */
 public bool IsClientTeamDrones(int client_index)
 {
 	return playerGearOverride[client_index] != -1 && GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) != cvar_gearteam.IntValue || cvar_gearteam.IntValue == 0) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 2);
 }
 
+ /**
+ * Checks if the given player is valid.
+ * In order for a player to be valid, his index must be between 1 and the max,
+ * he must be connected and be in game.
+ *
+ * @param client_index		index of the client.
+ * @return					true if the player is valid, false otherwise.
+ */
 stock bool IsValidClient(int client)
 {
 	if (client <= 0 || client > MaxClients || !IsClientConnected(client))
@@ -1118,6 +1377,12 @@ stock bool IsValidClient(int client)
  *											PLAYER VIEW
  ************************************************************************************************************/
 
+ /**
+ * Gets the given player's view model index.
+ *
+ * @param client_index		index of the client.
+ * @return					player's view model index.
+ */
 public int GetViewModelIndex(int client_index)
 {
 	int index = MAXPLAYERS;
@@ -1133,6 +1398,12 @@ public int GetViewModelIndex(int client_index)
 	return -1;
 }
 
+ /**
+ * Sets the given player's view model hidden or shown.
+ *
+ * @param client_index		index of the client.
+ * @param enabled			whether to show the view model or not.
+ */
 public void SetViewModel(int client_index, bool enabled)
 {
 	int EntEffects = GetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects");
@@ -1143,6 +1414,12 @@ public void SetViewModel(int client_index, bool enabled)
 	SetEntProp(clientsViewmodels[client_index], Prop_Send, "m_fEffects", EntEffects);
 }
 
+ /**
+ * Sets the given player's screen tint to grey if he is in gear.
+ *
+ * @param client_index		index of the client.
+ * @param isActive			whether to show the gear screen or not.
+ */
 public void SetGearScreen(int client, bool isActive)
 {
 	if (!IsClientInGame(client) || !IsPlayerAlive(client))
@@ -1181,6 +1458,12 @@ public void SetGearScreen(int client, bool isActive)
 	EndMessage();
 }
 
+ /**
+ * Hides the given player's hud.
+ * This must be called each frame in order to work.
+ *
+ * @param client_index		index of the client.
+ */
 public void HideHudGuns(int client_index)
 {
 	SetEntProp(client_index, Prop_Send, "m_iHideHUD", HIDEHUD_WEAPONSELECTION);
@@ -1220,7 +1503,11 @@ public void OnDroneHoverHeightChange(ConVar convar, char[] oldValue, char[] newV
 	droneHoverHeight = convar.FloatValue;
 }
 
-
+ /**
+ * If the custom models file exists, read its content and set the custom models
+ * to the ones specified in the file, if they are valid.
+ * Invalid models will be set to default.
+ */
 public void ReadCustomModelsFile()
 {
 	char path[PLATFORM_MAX_PATH], line[PLATFORM_MAX_PATH];
@@ -1259,6 +1546,14 @@ public void ReadCustomModelsFile()
 	CloseHandle(file);
 }
 
+ /**
+ * Reads the given line and extracts the model name.
+ * If the model name is valid, sets the associated custom model variable.
+ *
+ * @param line				line to extract the model name from.
+ * @param trigger			trigger name used for this model.
+ * @param type				model type. 0 = camera model ; 1 = camera physics model ; 2 = drone model ; 3 = drone physics model.
+ */
 public void ReadModel(char line[PLATFORM_MAX_PATH], char[] trigger, int type)
 {
 	ReplaceString(line, sizeof(line), trigger, "", false);
@@ -1285,6 +1580,12 @@ public void ReadModel(char line[PLATFORM_MAX_PATH], char[] trigger, int type)
 	}
 }
 
+ /**
+ * Reads the given file and extracts the custom rotation parameters.
+ *
+ * @param file				file to extract the rotation parameters from.
+ * @param isDrone			whether the parameters are for a drone or a camera.
+ */
 public void SetCustomRotation(File file, bool isDrone)
 {
 	char line[512];
@@ -1319,7 +1620,13 @@ public void SetCustomRotation(File file, bool isDrone)
 	}
 }
 
-
+ /**
+ * Tries to precache the given model.
+ * If the model cannot precache, it means it is invalid.
+ *
+ * @param model				model name.
+ * @return					true if the model could be precached, false otherwise.
+ */
 public bool TryPrecacheCamModel(char[] model)
 {
 	int result = PrecacheModel(model);
