@@ -1,3 +1,5 @@
+# Changelog
+
 * **Version 1.1.5**
   * Added overlay while in gear
   * Improved drone rotation control
