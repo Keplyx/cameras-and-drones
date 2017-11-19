@@ -5,6 +5,8 @@ Use this gear to lay traps to your enemies!
 
 It is similar in some ways to Rainbow six siege.
 
+## [Installation](installation.md)
+
 ## Features
 
    * Can buy cameras or drones
@@ -19,9 +21,6 @@ It is similar in some ways to Rainbow six siege.
    
 
 ## [Preview the plugin](media.md)
-
-## [Installation](installation.md)
-
 
 ## [Cvars](https://github.com/Keplyx/cameras-and-drones/blob/master/cameras-and-drones.cfg)
 
