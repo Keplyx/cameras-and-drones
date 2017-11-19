@@ -1,7 +1,8 @@
-## [Back to Home](index.md)
+### [Back to Home](index.md)
 
 
 # Changelog
+
 
 * **Version 1.1.5**
   * Added overlay while in gear

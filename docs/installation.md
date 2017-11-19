@@ -1,4 +1,4 @@
-## [Back to Home](index.md)
+### [Back to Home](index.md)
 
 
 # Plugin Installation
@@ -15,4 +15,4 @@ If you want to use custom models for your cameras or drones, download the [custo
 This plugin is compatible with [Trouble in Terrorist Town](https://github.com/Bara/TroubleinTerroristTown) for csgo by [Bara](https://github.com/Bara).
 
 Just install TTT and cameras and drones normaly for it to work.
-You will want to set the cvars cd_droneprice "30000" and cd_camprice "30000" to prevent players from buying gear outside of the traitor menu.
+You will want to set the cvars `cd_droneprice "30000"` and `cd_camprice "30000"` to prevent players from buying gear outside of the traitor menu.

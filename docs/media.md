@@ -1,9 +1,11 @@
-## [Back to Home](index.md)
+### [Back to Home](index.md)
 
 
 # Media
 
-## [Watch the video!](https://www.youtube.com/watch?v=SPmatCAUfrI)
+
+### [Watch the video!](https://www.youtube.com/watch?v=SPmatCAUfrI)
+
 
 ### Cameras
 ![20170723130732_1](https://user-images.githubusercontent.com/23726131/28498864-566e8e60-6fa8-11e7-861f-29095ef1b1de.jpg)

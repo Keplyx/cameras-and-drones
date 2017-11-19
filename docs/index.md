@@ -27,15 +27,19 @@ It is similar in some ways to Rainbow six siege.
 
 ## Commands
 
-    "cd_buy" (buy gear from your team depending on the cvar)
-    "cd_cam" (use the gear from your team)
-    "cd_help" (Show plugin help)
-    
-    ADMIN ONLY
-    "cd_override" (Override gear for a player)
-    "cd_reloadmodels" (Reload custom models file)
+```"cd_buy" (buy gear from your team depending on the cvar)
+"cd_cam" (use the gear from your team)
+"cd_help" (Show plugin help)
+
+ADMIN ONLY
+"cd_override" (Override gear for a player)
+"cd_reloadmodels" (Reload custom models file)
+```
 
 
 ## [Changlelog](changlelog.md)
+
+### [Current Issues](https://github.com/Keplyx/cameras-and-drones/issues/1)
+### [Report Bugs](https://github.com/Keplyx/cameras-and-drones/issues)
 
 ### Creator: [Keplyx](https://github.com/Keplyx)
