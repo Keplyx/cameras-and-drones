@@ -1,7 +1,8 @@
+# Installation
+
+
 ### [Back to Home](index.md)
 
-
-## Installation
 
 
 ## Plugin Installation
