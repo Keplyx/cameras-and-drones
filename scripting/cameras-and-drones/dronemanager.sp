@@ -204,9 +204,9 @@ public void JumpDrone(int client_index, int drone)
  */
 public void Hook_PostThinkDrone(int client_index)
 {
-	int drone = activeDrone[client_index][0];
-	if (drone < 0)
+	if (!IsClientInDrone(client_index))
 		return;
+	int drone = activeDrone[client_index][0];
 	float groundDistance = DistanceToGround(drone);
 	
 	LowerDroneView(client_index);
@@ -345,18 +345,13 @@ public bool TraceFilterIgnorePlayers(int entity_index, int mask, any data)
 public void TpToDrone(int client_index, int drone)
 {
 	// Allow for drone to drone switch
-	if (fakePlayersListDrones[client_index] < 1)
+	if (!IsClientInDrone(client_index))
 	{
 		CreateFakePlayer(client_index, false);
 		EmitSoundToClient(client_index, openDroneSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 	}
-	if (activeDrone[client_index][1] > MAXPLAYERS)
-	{
-		SetVariantString("!activator"); AcceptEntityInput(activeDrone[client_index][1], "SetParent", activeDrone[client_index][0], activeDrone[client_index][1], 0);
-		float pos[3], rot[3];
-		TeleportEntity(activeDrone[client_index][1], pos, rot, NULL_VECTOR);
+	else
 		StopSound(activeDrone[client_index][0], SNDCHAN_AUTO, droneSound)
-	}
 	// Set active
 	activeDrone[client_index][0] = drone;
 	activeDrone[client_index][1] = dronesModelList.Get(dronesList.FindValue(drone));
@@ -395,37 +390,43 @@ public void TpToDrone(int client_index, int drone)
  /**
  * Teleports the player from the drone to his old postion (fake player position).
  * It deletes the fake player.
- * The teleported player gets normal properties (collisions, movement).
+ * Player gets normal properties (collisions, movement).
+ * If player is not in a drone, do not delete fake player and do not teleport player.
  *
  * @param client_index			index of the client.
  */
 public void ExitDrone(int client_index)
 {
-	// Set appearance
-	char modelName[PLATFORM_MAX_PATH];
-	GetEntPropString(fakePlayersListDrones[client_index], Prop_Data, "m_ModelName", modelName, sizeof(modelName));
-	SetEntityModel(client_index, modelName); // Set back to original model
 	SetGearScreen(client_index, false);
 	SetViewModel(client_index, true);
 	SetEntityMoveType(client_index, MOVETYPE_WALK);
-	// Hooks
+	
 	SDKUnhook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKUnhook(client_index, SDKHook_PostThink, Hook_PostThinkDrone);
 	SDKUnhook(client_index, SDKHook_OnTakeDamage, Hook_TakeDamagePlayer);
-	// Set pos
-	AcceptEntityInput(client_index, "SetParent");
-	float pos[3], rot[3];
-	GetEntPropVector(fakePlayersListDrones[client_index], Prop_Send, "m_vecOrigin", pos);
-	GetEntPropVector(fakePlayersListDrones[client_index], Prop_Send, "m_angRotation", rot);
-	TeleportEntity(client_index, pos, rot, NULL_VECTOR);
+	
 	// Set collisions
 	SetEntData(client_index, GetCollOffset(), oldCollisionValueD[client_index], 1, true);
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 0);
 	// Sound
 	StopSound(activeDrone[client_index][0], SNDCHAN_AUTO, droneSound)
-	EmitSoundToClient(client_index, openDroneSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
-	// Clear stuff
-	RemoveEdict(fakePlayersListDrones[client_index]);
+	
+	if (IsClientInDrone(client_index) && IsValidEdict(fakePlayersListDrones[client_index]))
+	{
+		// Set appearance
+		char modelName[PLATFORM_MAX_PATH];
+		GetEntPropString(fakePlayersListDrones[client_index], Prop_Data, "m_ModelName", modelName, sizeof(modelName));
+		SetEntityModel(client_index, modelName);
+		// Set pos
+		AcceptEntityInput(client_index, "SetParent");
+		float pos[3], rot[3];
+		GetEntPropVector(fakePlayersListDrones[client_index], Prop_Send, "m_vecOrigin", pos);
+		GetEntPropVector(fakePlayersListDrones[client_index], Prop_Send, "m_angRotation", rot);
+		TeleportEntity(client_index, pos, rot, NULL_VECTOR);
+		RemoveEdict(fakePlayersListDrones[client_index]);
+		EmitSoundToClient(client_index, openDroneSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
+	}
+	
 	fakePlayersListDrones[client_index] = -1;
 	activeDrone[client_index][0] = -1;
 	activeDrone[client_index][1] = -1;
@@ -449,9 +450,7 @@ public void DestroyDrone(int drone, bool isSilent)
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
 		if (activeDrone[i][0] == drone && IsValidClient(i))
-		{
 			CloseDrone(i);
-		}
 	}
 	
 	if (IsValidEdict(drone))
@@ -460,4 +459,15 @@ public void DestroyDrone(int drone, bool isSilent)
 		RemoveEdict(dronesModelList.Get(dronesList.FindValue(drone)));
 	
 	RemoveDroneFromList(drone);
+}
+
+ /**
+ * Checks whether the given player is using his drone or not.
+ *
+ * @param client_index		index of the client.
+ * @return					true if the player is using his drone, false otherwise.
+ */
+public bool IsClientInDrone(int client_index)
+{
+	return activeDrone[client_index][0] > MAXPLAYERS;
 }
