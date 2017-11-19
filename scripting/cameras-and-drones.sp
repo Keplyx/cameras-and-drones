@@ -34,6 +34,7 @@
 /*  New in this version
 *	Added overlay while in gear
 *	Improved drone rotation control
+*	Documented code
 *
 */
 

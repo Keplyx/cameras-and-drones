@@ -1,3 +1,8 @@
+* **Version 1.1.5**
+  * Added overlay while in gear
+  * Improved drone rotation control
+  * Documented code
+
 * **Version 1.1.4**
   * Fixed player not taking damage after finishing round in gear
   * Fixed plugin crash on start when custom_models file was not present
