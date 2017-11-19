@@ -31,4 +31,6 @@ It is similar in some ways to Rainbow six siege.
 
 ## [>> Changlelog](changlelog.md)
 
+## [>> AlliedModders Thread](https://forums.alliedmods.net/showthread.php?t=299696)
+
 ### Creator: [Keplyx](https://github.com/Keplyx)
