@@ -18,7 +18,7 @@ It is similar in some ways to Rainbow six siege.
    * Can choose which team can use drones/cameras
    * Can choose if teammates are allowed to break your drones/cameras
    * Can choose your own camera/drone model
-   * **Is compatible with [TTT](https://github.com/Bara/TroubleinTerroristTown)** (See [Installation](installation.md) for more information
+   * **Is compatible with [TTT](https://github.com/Bara/TroubleinTerroristTown)** (See [Installation](installation.md) for more information)
    
 
 ## [Preview the plugin](media.md)
@@ -27,19 +27,18 @@ It is similar in some ways to Rainbow six siege.
 
 ## Commands
 
-```"cd_buy" (buy gear from your team depending on the cvar)
-"cd_cam" (use the gear from your team)
-"cd_help" (Show plugin help)
+    "cd_buy" (buy gear from your team depending on the cvar)
+    "cd_cam" (use the gear from your team)
+    "cd_help" (Show plugin help)
 
-ADMIN ONLY
-"cd_override" (Override gear for a player)
-"cd_reloadmodels" (Reload custom models file)
-```
+    ADMIN ONLY
+    "cd_override" (Override gear for a player)
+    "cd_reloadmodels" (Reload custom models file)
+
 
 
 ## [Changlelog](changlelog.md)
 
-### [Current Issues](https://github.com/Keplyx/cameras-and-drones/issues/1)
-### [Report Bugs](https://github.com/Keplyx/cameras-and-drones/issues)
+### [Current Issues](https://github.com/Keplyx/cameras-and-drones/issues/1) / [Report Bugs](https://github.com/Keplyx/cameras-and-drones/issues)
 
 ### Creator: [Keplyx](https://github.com/Keplyx)
