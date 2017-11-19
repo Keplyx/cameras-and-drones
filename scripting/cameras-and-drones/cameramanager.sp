@@ -149,6 +149,7 @@ public void CreateCameraModel(int client_index, int cam)
  */
 public void CreateFlash(int client_index, int cam)
 {
+	DestroyFlash(client_index);
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
 		if (activeCam[i][0] == cam && i != client_index)
@@ -236,20 +237,19 @@ public void LowerCameraView(int client_index)
  */
 public void TpToCam(int client_index, int cam)
 {
-	if (fakePlayersListCamera[client_index] < 1)
+	if (!IsClientInCam(client_index))
 	{
 		CreateFakePlayer(client_index, true);
 		EmitSoundToClient(client_index, openCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 	}
-	SetGearScreen(client_index, true);
+	// Set active
+	activeCam[client_index][0] = cam;
+	activeCam[client_index][1] = camerasModelList.Get(camerasList.FindValue(cam));
 	
 	SetEntityModel(client_index, inCamModel); // Set to a small model to prevent collisions/shots
+	SetGearScreen(client_index, true);
 	SetEntityMoveType(client_index, MOVETYPE_NOCLIP);
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 0.0);
-	// Hooks
-	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
-	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkCam);
-	SDKHook(client_index, SDKHook_OnTakeDamage, Hook_TakeDamagePlayer);
 	// Set pos
 	float pos[3], rot[3];
 	if (useCamAngles)
@@ -268,10 +268,11 @@ public void TpToCam(int client_index, int cam)
 	SetEntData(client_index, GetCollOffset(), 2, 4, true);
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 2);
 	
-	activeCam[client_index][0] = cam;
-	activeCam[client_index][1] = camerasModelList.Get(camerasList.FindValue(cam));
-	// Create flashing light
-	DestroyFlash(client_index);
+	// Hooks
+	SDKHook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
+	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkCam);
+	SDKHook(client_index, SDKHook_OnTakeDamage, Hook_TakeDamagePlayer);
+	
 	CreateFlash(client_index, cam);
 }
 
@@ -285,35 +286,35 @@ public void TpToCam(int client_index, int cam)
 public void ExitCam(int client_index)
 {
 	SetGearScreen(client_index, false);
-	
-	char modelName[PLATFORM_MAX_PATH];
-	GetEntPropString(fakePlayersListCamera[client_index], Prop_Data, "m_ModelName", modelName, sizeof(modelName));
-	SetEntityModel(client_index, modelName); // Set back to original model
-	
 	SetViewModel(client_index, true);
 	SetEntityMoveType(client_index, MOVETYPE_WALK);
 	SetEntPropFloat(client_index, Prop_Data, "m_flLaggedMovementValue", 1.0);
-	// Hooks
+	
 	SDKUnhook(client_index, SDKHook_SetTransmit, Hook_SetTransmitPlayer);
 	SDKUnhook(client_index, SDKHook_PostThink, Hook_PostThinkCam);
 	SDKUnhook(client_index, SDKHook_OnTakeDamage, Hook_TakeDamagePlayer);
-	// Set pos
-	AcceptEntityInput(client_index, "SetParent");
-	float pos[3], rot[3];
-	GetEntPropVector(fakePlayersListCamera[client_index], Prop_Send, "m_vecOrigin", pos);
-	GetEntPropVector(fakePlayersListCamera[client_index], Prop_Send, "m_angRotation", rot);
-	TeleportEntity(client_index, pos, rot, NULL_VECTOR);
 	// Set collisions
 	SetEntData(client_index, GetCollOffset(), oldCollisionValue[client_index], 1, true);
 	SetEntProp(client_index, Prop_Send, "m_nHitboxSet", 0);
-	// Remove props
-	RemoveEdict(fakePlayersListCamera[client_index]);
-	DestroyFlash(client_index);
+	if (IsClientInCam(client_index) && IsValidEdict(fakePlayersListCamera[client_index]))
+	{
+		// Set appearance
+		char modelName[PLATFORM_MAX_PATH];
+		GetEntPropString(fakePlayersListCamera[client_index], Prop_Data, "m_ModelName", modelName, sizeof(modelName));
+		SetEntityModel(client_index, modelName);
+		// Set pos
+		AcceptEntityInput(client_index, "SetParent");
+		float pos[3], rot[3];
+		GetEntPropVector(fakePlayersListCamera[client_index], Prop_Send, "m_vecOrigin", pos);
+		GetEntPropVector(fakePlayersListCamera[client_index], Prop_Send, "m_angRotation", rot);
+		TeleportEntity(client_index, pos, rot, NULL_VECTOR);
+		RemoveEdict(fakePlayersListCamera[client_index]);
+		DestroyFlash(client_index);
+		EmitSoundToClient(client_index, openCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
+	}
 	activeCam[client_index][0] = -1;
 	activeCam[client_index][1] = -1;
 	fakePlayersListCamera[client_index] = -1;
-	// Sound!
-	EmitSoundToClient(client_index, openCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 }
 
  /**
@@ -334,9 +335,7 @@ public void DestroyCamera(int cam, bool isSilent)
 	for (int i = 1; i <= MAXPLAYERS; i++)
 	{
 		if (activeCam[i][0] == cam && IsValidClient(i))
-		{
 			CloseCamera(i);
-		}
 	}
 	
 	if (IsValidEdict(cam))
@@ -344,4 +343,15 @@ public void DestroyCamera(int cam, bool isSilent)
 	if (IsValidEdict(camerasModelList.Get(camerasList.FindValue(cam))))
 		RemoveEdict(camerasModelList.Get(camerasList.FindValue(cam)));
 	RemoveCameraFromList(cam);
+}
+
+ /**
+ * Checks whether the given player is using his camera or not.
+ *
+ * @param client_index		index of the client.
+ * @return					true if the player is using his camera, false otherwise.
+ */
+public bool IsClientInCam(int client_index)
+{
+	return activeCam[client_index][0] > MAXPLAYERS;
 }

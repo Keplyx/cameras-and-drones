@@ -293,6 +293,7 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 {
 	int client_index = GetClientOfUserId(GetEventInt(event, "userid"));
 	clientsViewmodels[client_index] = GetViewModelIndex(client_index);
+	CloseGear(client_index);
 }
 
 /************************************************************************************************************
@@ -1129,7 +1130,7 @@ public Action Hook_TakeDamageGear(int victim, int &attacker, int &inflictor, flo
 		client_index = camOwnersList.Get(camerasList.FindValue(victim));
 	else if (dronesList.FindValue(victim) != -1)
 		client_index = dronesOwnerList.Get(dronesList.FindValue(victim));
-	if (!IsValidClient(client_index))
+	if (!IsValidClient(client_index) || !IsValidClient(inflictor))
 		return Plugin_Handled;
 	if (cvar_tkprotect.BoolValue && GetClientTeam(client_index) == GetClientTeam(inflictor) && client_index != inflictor)
 		return Plugin_Handled;
@@ -1312,28 +1313,6 @@ public bool IsWeaponGear(int weapon_index)
 public bool IsClientInGear(int client_index)
 {
 	return IsClientInCam(client_index) || IsClientInDrone(client_index);
-}
-
- /**
- * Checks whether the given player is using his camera or not.
- *
- * @param client_index		index of the client.
- * @return					true if the player is using his camera, false otherwise.
- */
-public bool IsClientInCam(int client_index)
-{
-	return activeCam[client_index][0] > MAXPLAYERS;
-}
-
- /**
- * Checks whether the given player is using his drone or not.
- *
- * @param client_index		index of the client.
- * @return					true if the player is using his drone, false otherwise.
- */
-public bool IsClientInDrone(int client_index)
-{
-	return activeDrone[client_index][0] > MAXPLAYERS;
 }
 
  /**
