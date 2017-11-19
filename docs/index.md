@@ -5,7 +5,9 @@ Use this gear to lay traps to your enemies!
 
 It is similar in some ways to Rainbow six siege.
 
-## [Installation](installation.md)
+## [>> Installation](installation.md)
+
+## [>> Preview](media.md)
 
 ## Features
 
@@ -21,24 +23,12 @@ It is similar in some ways to Rainbow six siege.
    * **Is compatible with [TTT](https://github.com/Bara/TroubleinTerroristTown)** (See [Installation](installation.md) for more information)
    
 
-## [Preview the plugin](media.md)
-
-## [Cvars](https://github.com/Keplyx/cameras-and-drones/blob/master/cameras-and-drones.cfg)
-
-## Commands
-
-    "cd_buy" (buy gear from your team depending on the cvar)
-    "cd_cam" (use the gear from your team)
-    "cd_help" (Show plugin help)
-
-    ADMIN ONLY
-    "cd_override" (Override gear for a player)
-    "cd_reloadmodels" (Reload custom models file)
 
 
-
-## [Changlelog](changlelog.md)
+### [Cvars](https://github.com/Keplyx/cameras-and-drones/blob/master/cameras-and-drones.cfg) / [Commands](commands.md)
 
 ### [Current Issues](https://github.com/Keplyx/cameras-and-drones/issues/1) / [Report Bugs](https://github.com/Keplyx/cameras-and-drones/issues)
+
+## [>> Changlelog](changlelog.md)
 
 ### Creator: [Keplyx](https://github.com/Keplyx)
