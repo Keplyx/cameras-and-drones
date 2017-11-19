@@ -45,6 +45,6 @@ A map is currently being made to work along with this plugin. [Get it here!](htt
 ![20170723130846_1](https://user-images.githubusercontent.com/23726131/28498867-566f530e-6fa8-11e7-953f-25e849555676.jpg)
 ![20170723130906_1](https://user-images.githubusercontent.com/23726131/28498868-566fd0f4-6fa8-11e7-8513-9124cd78351f.jpg)
 
-## [Changlelog](https://github.com/Keplyx/cameras-and-drones/blob/master/Changlelog.md)
+## [Changlelog](changlelog.md)
 
 ### Creator: Keplyx
