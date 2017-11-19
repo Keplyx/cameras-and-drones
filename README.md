@@ -5,7 +5,7 @@ Use this gear to lay traps to your enemies!
 
 It is similar in some ways to Rainbow six siege.
 
-##See the [website](https://keplyx.github.io/cameras-and-drones/index.html) for more information
+## See the [website](https://keplyx.github.io/cameras-and-drones/index.html) for more information
 
 
 ## Installation
