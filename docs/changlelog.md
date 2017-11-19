@@ -4,6 +4,9 @@
 # Changelog
 
 
+* **Version 1.1.6**
+  * Fixed errors when exiting/entering gear
+
 * **Version 1.1.5**
   * Added overlay while in gear
   * Improved drone rotation control

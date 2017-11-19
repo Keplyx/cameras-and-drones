@@ -32,13 +32,11 @@
 #include "cameras-and-drones/init.sp"
 
 /*  New in this version
-*	Added overlay while in gear
-*	Improved drone rotation control
-*	Documented code
+*	Fixed errors when exiting/entering gear
 *
 */
 
-#define VERSION "1.1.5"
+#define VERSION "1.1.6"
 #define AUTHOR "Keplyx"
 #define PLUGIN_NAME "Cameras and Drones"
 
