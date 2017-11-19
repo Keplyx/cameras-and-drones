@@ -18,6 +18,7 @@ It is similar in some ways to Rainbow six siege.
    * Can choose which team can use drones/cameras
    * Can choose if teammates are allowed to break your drones/cameras
    * Can choose your own camera/drone model
+   * **Is compatible with [TTT](https://github.com/Bara/TroubleinTerroristTown)** (See [Installation](installation.md) for more information
    
 
 ## [Preview the plugin](media.md)
@@ -37,4 +38,4 @@ It is similar in some ways to Rainbow six siege.
 
 ## [Changlelog](changlelog.md)
 
-### Creator: Keplyx
+### Creator: [Keplyx](https://github.com/Keplyx)
