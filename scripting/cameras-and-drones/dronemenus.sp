@@ -23,6 +23,10 @@
 
 Menu playerDroneMenus[MAXPLAYERS + 1];
 
+ /**
+ * Creates the drones menu for the given player.
+ * This menu lets the player choose which drone he wants to use, and shows him which one he is currently using.
+ */
 public void Menu_Drones(int client_index, int args)
 {
 	playerDroneMenus[client_index] = new Menu(MenuHandler_Drones);
@@ -53,6 +57,10 @@ public void Menu_Drones(int client_index, int args)
 	playerDroneMenus[client_index].Display(client_index, MENU_TIME_FOREVER);
 }
 
+ /**
+ * Handler for drones menu.
+ * Teleports the player to the drone associated to the menu entry, or exits the current drone on cancel.
+ */
 public int MenuHandler_Drones(Menu menu, MenuAction action, int param1, int params)
 {
 	if (action == MenuAction_Select)
@@ -93,6 +101,9 @@ public int MenuHandler_Drones(Menu menu, MenuAction action, int param1, int para
 		delete menu;
 }
 
+ /**
+ * Deletes the given player's drones menu.
+ */
 public void ResetDronesMenuPlayer(int client_index)
 {
 	if (playerDroneMenus[client_index] != null)
@@ -102,6 +113,9 @@ public void ResetDronesMenuPlayer(int client_index)
 	}
 }
 
+ /**
+ * Deletes drones menus for every players.
+ */
 public void ResetDronesMenuAll()
 {
 	for (int i = 0; i <= MAXPLAYERS; i++)

@@ -42,6 +42,11 @@ ConVar cvar_usecustomcam_model = null;
 
 ConVar cvar_usetagrenade = null;
 
+ /**
+ * Creates plugin cvars.
+ *
+ * @param version			version name.
+ */
 public void CreateConVars(char[] version)
 {
 	CreateConVar("cameras-and-drones_version", version, "Cameras and Drones Version", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
@@ -81,6 +86,9 @@ public void CreateConVars(char[] version)
 	AutoExecConfig(true, "cameras-and-drones");
 }
 
+ /**
+ * Creates plugin commands.
+ */
 public void RegisterCommands()
 {
 	RegAdminCmd("cd_override", OverrideGear, ADMFLAG_GENERIC, "Override gear for a player");
