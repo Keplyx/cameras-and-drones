@@ -3,7 +3,8 @@
 
 ### [Back to Home](index.md)
 
-
+* **Version 1.1.7**
+  * Improved compatibility with [Tactical Shield](https://keplyx.github.io/TacticalShield/index.html)
 
 * **Version 1.1.6**
   * Fixed errors when exiting/entering gear

@@ -1,9 +1,11 @@
 # Cameras and Drones
 This plugin adds cameras and drones to the game. Cameras are designed to be used as defensive gear, whereas drones should be used while attacking.
 
-Use this gear to lay traps to your enemies! 
+Use this gear to lay traps to your enemies!
 
 It is similar in some ways to Rainbow six siege.
+
+Fully compatible with [Tactical Shield](https://keplyx.github.io/TacticalShield/index.html)!
 
 ## [>> Installation](installation.md)
 
@@ -21,7 +23,7 @@ It is similar in some ways to Rainbow six siege.
    * Can choose if teammates are allowed to break your drones/cameras
    * Can choose your own camera/drone model
    * **Is compatible with [TTT](https://github.com/Bara/TroubleinTerroristTown)** (See [Installation](installation.md) for more information)
-   
+
 
 
 
