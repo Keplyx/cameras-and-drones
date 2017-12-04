@@ -1,7 +1,11 @@
+---
+layout : default
+title : Changelog
+topbar_link : true
+---
+
 # Changelog
 
-
-### [Back to Home](index.md)
 
 * **Version 1.1.7**
   * Improved compatibility with [Tactical Shield](https://keplyx.github.io/TacticalShield/index.html)

@@ -1,8 +1,10 @@
+---
+layout : default
+title : Installation
+topbar_link : true
+---
+
 # Installation
-
-
-### [Back to Home](index.md)
-
 
 
 ## Plugin Installation

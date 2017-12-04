@@ -1,3 +1,8 @@
+---
+layout : default
+title : Home
+---
+
 # Cameras and Drones
 This plugin adds cameras and drones to the game. Cameras are designed to be used as defensive gear, whereas drones should be used while attacking.
 
@@ -6,10 +11,6 @@ Use this gear to lay traps to your enemies!
 It is similar in some ways to Rainbow six siege.
 
 Fully compatible with [Tactical Shield](https://keplyx.github.io/TacticalShield/index.html)!
-
-## [>> Installation](installation.md)
-
-## [>> Preview](media.md)
 
 ## Features
 
@@ -26,13 +27,4 @@ Fully compatible with [Tactical Shield](https://keplyx.github.io/TacticalShield/
 
 
 
-
-### [Cvars](https://github.com/Keplyx/cameras-and-drones/blob/master/cameras-and-drones.cfg) / [Commands](commands.md)
-
-### [Current Issues](https://github.com/Keplyx/cameras-and-drones/issues/1) / [Report Bugs](https://github.com/Keplyx/cameras-and-drones/issues)
-
-## [>> Changlelog](changlelog.md)
-
-## [>> AlliedModders Thread](https://forums.alliedmods.net/showthread.php?t=299696)
-
-### Creator: [Keplyx](https://github.com/Keplyx)
+### Creator: [Keplyx](https://keplyx.github.io/index.html)
