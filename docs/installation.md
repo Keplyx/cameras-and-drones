@@ -21,7 +21,7 @@ This plugin is compatible with [Trouble in Terrorist Town](https://github.com/Ba
 Just install TTT and cameras and drones normally for it to work.
 You will want to set the cvars *cd_droneprice "30000"* and *cd_camprice "30000"* to prevent players from buying gear outside of the traitor menu.
 
-### Tactical Tactical
+### Tactical Shield
 This plugin is compatible with [Tactical Shield](https://keplyx.github.io/TacticalShield/index.html).
 
 You can use both plugins without any problem!
