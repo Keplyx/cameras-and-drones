@@ -1,8 +1,10 @@
+---
+layout : default
+title : Media
+topbar_link : true
+---
+
 # Media
-
-
-### [Back to Home](index.md)
-
 
 
 ## Video
