@@ -710,7 +710,7 @@ public void OpenCamera(int client_index)
 		target = camerasList.Get(0);
 	
 	if (tacticalShield)
-		RemovePlayerShield(client_index);
+		UnequipPlayerShield(client_index);
 	
 	Menu_Cameras(client_index, camerasList.FindValue(target));
 	TpToCam(client_index, target);
@@ -761,7 +761,7 @@ public void OpenDrone(int client_index)
 	}
 	
 	if (tacticalShield)
-		RemovePlayerShield(client_index);
+		UnequipPlayerShield(client_index);
 	
 	Menu_Drones(client_index, dronesList.FindValue(target));
 	TpToDrone(client_index, target);
