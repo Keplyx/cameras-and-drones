@@ -240,7 +240,7 @@ public void LowerCameraView(int client_index)
 public void TpToCam(int client_index, int cam)
 {
 	if (cTacticalShield)
-		HidePlayerShield(client_index);
+		SetHidePlayerShield(client_index, true);
 	
 	if (!IsClientInCam(client_index))
 	{
@@ -322,7 +322,7 @@ public void ExitCam(int client_index)
 	fakePlayersListCamera[client_index] = -1;
 	
 	if (cTacticalShield)
-		UnhidePlayerShield(client_index);
+		SetHidePlayerShield(client_index, false);
 }
 
  /**

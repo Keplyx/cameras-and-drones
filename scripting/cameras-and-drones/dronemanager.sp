@@ -347,7 +347,7 @@ public bool TraceFilterIgnorePlayers(int entity_index, int mask, any data)
 public void TpToDrone(int client_index, int drone)
 {
 	if (dTacticalShield)
-		HidePlayerShield(client_index);
+		SetHidePlayerShield(client_index, true);
 	
 	// Allow for drone to drone switch
 	if (!IsClientInDrone(client_index))
@@ -437,7 +437,7 @@ public void ExitDrone(int client_index)
 	activeDrone[client_index][1] = -1;
 	
 	if (dTacticalShield)
-		UnhidePlayerShield(client_index);
+		SetHidePlayerShield(client_index, false);
 }
 
  /**
