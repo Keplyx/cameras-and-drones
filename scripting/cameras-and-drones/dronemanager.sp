@@ -51,6 +51,8 @@ bool isDroneGrounded[MAXPLAYERS + 1];
 bool fixedRotation[MAXPLAYERS + 1];
 bool isDroneMoving[MAXPLAYERS + 1];
 
+bool dTacticalShield;
+
  /**
  * Add a new drone to the list.
  *
@@ -344,6 +346,9 @@ public bool TraceFilterIgnorePlayers(int entity_index, int mask, any data)
  */
 public void TpToDrone(int client_index, int drone)
 {
+	if (dTacticalShield)
+		SetHidePlayerShield(client_index, true);
+	
 	// Allow for drone to drone switch
 	if (!IsClientInDrone(client_index))
 	{
@@ -430,6 +435,9 @@ public void ExitDrone(int client_index)
 	fakePlayersListDrones[client_index] = -1;
 	activeDrone[client_index][0] = -1;
 	activeDrone[client_index][1] = -1;
+	
+	if (dTacticalShield)
+		SetHidePlayerShield(client_index, false);
 }
 
  /**

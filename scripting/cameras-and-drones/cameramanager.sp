@@ -41,6 +41,8 @@ float customCamModelRot[3];
 bool useCustomCamModel = false;
 bool useCamAngles = true;
 
+bool cTacticalShield;
+
  /**
  * Add a new camera to the list.
  *
@@ -237,6 +239,9 @@ public void LowerCameraView(int client_index)
  */
 public void TpToCam(int client_index, int cam)
 {
+	if (cTacticalShield)
+		SetHidePlayerShield(client_index, true);
+	
 	if (!IsClientInCam(client_index))
 	{
 		CreateFakePlayer(client_index, true);
@@ -315,6 +320,9 @@ public void ExitCam(int client_index)
 	activeCam[client_index][0] = -1;
 	activeCam[client_index][1] = -1;
 	fakePlayersListCamera[client_index] = -1;
+	
+	if (cTacticalShield)
+		SetHidePlayerShield(client_index, false);
 }
 
  /**

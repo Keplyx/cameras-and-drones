@@ -50,7 +50,6 @@
 #define customModelsPath "gamedata/cameras-and-drones/custom_models.txt"
 
 bool lateload;
-bool tacticalShield;
 
 int clientsViewmodels[MAXPLAYERS + 1];
 
@@ -119,14 +118,16 @@ public void OnPluginStart()
 
 public void OnAllPluginsLoaded()
 {
-	tacticalShield = LibraryExists("tacticalshield");
+	dTacticalShield = LibraryExists("tacticalshield");
+	cTacticalShield = dTacticalShield;
 }
  
 public void OnLibraryRemoved(const char[] name)
 {
 	if (StrEqual(name, "tacticalshield"))
 	{
-		tacticalShield = false;
+		dTacticalShield = false;
+		cTacticalShield = dTacticalShield;
 	}
 }
  
@@ -134,7 +135,8 @@ public void OnLibraryAdded(const char[] name)
 {
 	if (StrEqual(name, "tacticalshield"))
 	{
-		tacticalShield = true;
+		dTacticalShield = true;
+		cTacticalShield = dTacticalShield;
 	}
 }
 
@@ -709,9 +711,6 @@ public void OpenCamera(int client_index)
 	if (target == -1)
 		target = camerasList.Get(0);
 	
-	if (tacticalShield)
-		RemovePlayerShield(client_index);
-	
 	Menu_Cameras(client_index, camerasList.FindValue(target));
 	TpToCam(client_index, target);
 }
@@ -759,9 +758,6 @@ public void OpenDrone(int client_index)
 		PrintHintText(client_index, "<font color='#ff0000' size='30'>No drones available</font>");
 		return;
 	}
-	
-	if (tacticalShield)
-		RemovePlayerShield(client_index);
 	
 	Menu_Drones(client_index, dronesList.FindValue(target));
 	TpToDrone(client_index, target);
