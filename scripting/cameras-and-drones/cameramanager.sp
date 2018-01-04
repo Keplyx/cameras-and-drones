@@ -79,16 +79,17 @@ public void RemoveCameraFromList(int cam)
  * @param pos					position of the camera to create.
  * @param rot					rotation of the camera to create.
  */
-public void CreateCamera(int client_index, float pos[3], float rot[3])
+public void CreateCamera(int client_index, float pos[3], float rot[3], float vel[3])
 {
 	int cam = CreateEntityByName("prop_dynamic_override");
 	if (IsValidEntity(cam)) {
 		SetCameraPhysicsModel(cam);
 		DispatchKeyValue(cam, "solid", "6");
+		SetEntProp(cam, Prop_Data, "m_CollisionGroup", 1); // Stop collisions with players
 		DispatchSpawn(cam);
 		ActivateEntity(cam);
 		
-		TeleportEntity(cam, pos, rot, NULL_VECTOR);
+		TeleportEntity(cam, pos, rot, vel);
 		
 		SDKHook(cam, SDKHook_OnTakeDamage, Hook_TakeDamageGear);
 		SetEntityRenderMode(cam, RENDER_NONE);

@@ -53,7 +53,6 @@ bool lateload;
 
 int clientsViewmodels[MAXPLAYERS + 1];
 
-char gearWeapon[] = "weapon_tagrenade";
 char gearOverlay[] = "vgui/screens/vgui_overlay";
 
 bool canDisplayThrowWarning[MAXPLAYERS + 1];
@@ -63,7 +62,6 @@ bool isDroneJumping[MAXPLAYERS + 1];
 int collisionOffsets;
 
 int availabletGear[MAXPLAYERS + 1];
-ArrayList gearProjectiles;
 
 int playerGearOverride[MAXPLAYERS + 1];
 
@@ -94,7 +92,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	AddNormalSoundHook(NormalSoundHook);
 	HookEvent("round_start", Event_RoundStart);
 	HookEvent("player_spawn", Event_PlayerSpawn);
 	AddCommandListener(CommandDrop, "drop");
@@ -170,7 +167,6 @@ public void OnMapStart()
 public void OnClientPostAdminCheck(int client_index)
 {
 	SDKHook(client_index, SDKHook_WeaponCanUse, Hook_WeaponCanUse);
-	SDKHook(client_index, SDKHook_WeaponSwitch, Hook_WeaponSwitch);
 	int ref = EntIndexToEntRef(client_index);
 	CreateTimer(3.0, Timer_WelcomeMessage, ref);
 }
@@ -228,7 +224,6 @@ public void InitVars()
 	dronesList = new ArrayList();
 	dronesModelList = new ArrayList();
 	dronesOwnerList = new ArrayList();
-	gearProjectiles = new ArrayList();
 	
 	droneSpeed = cvar_dronespeed.FloatValue;
 	droneJumpForce = cvar_dronejump.FloatValue;
@@ -337,119 +332,6 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 	int client_index = GetClientOfUserId(GetEventInt(event, "userid"));
 	clientsViewmodels[client_index] = GetViewModelIndex(client_index);
 	CloseGear(client_index);
-}
-
-/************************************************************************************************************
-*											Detect Gear
-************************************************************************************************************/
-
-/**
-* Hooks tactical grenades spawn.
-*
-* @param entity_index    index of the entity created.
-* @param classname    classname of the entity created.
-*/
-public void OnEntityCreated(int entity_index, const char[] classname)
-{
-	if (StrEqual(classname, "tagrenade_projectile", false))
-	{
-		SDKHook(entity_index, SDKHook_Spawn, OnProjectileSpawned);
-	}
-}
-
-/**
-* If the spawned projectile is not being used as a flashing light for cameras
-* and can be used as gear, set its model and hook its touch even.
-*
-* @param entity_index    index of the entity spawned.
-*/
-public void OnProjectileSpawned (int entity_index)
-{
-	// Do not hook flash
-	for (int i = 1; i <= MAXPLAYERS; i++)
-	{
-		if (activeCam[i][2] == entity_index)
-			return;
-	}
-	
-	int owner = GetEntPropEnt(entity_index, Prop_Send, "m_hOwnerEntity");
-	if (IsClientTeamCameras(owner))
-	{
-		if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
-			return;
-		SetCameraPhysicsModel(entity_index);
-	}
-	else if (IsClientTeamDrones(owner))
-	{
-		if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
-			return;
-		SetDronePhysicsModel(entity_index);
-	}
-	gearProjectiles.Push(entity_index);
-	SDKHook(entity_index, SDKHook_StartTouch, StartTouchGrenade);
-}
-
-/**
-* If the touched entity is not a player,
-* create a camera/drone at the touch position.
-*
-* @param entity1    index of the grenade.
-* @param entity2    index of the touched entity.
-*/
-public Action StartTouchGrenade(int entity1, int entity2)
-{
-	if (IsValidEdict(entity1))
-	{
-		float pos[3], rot[3];
-		GetEntPropVector(entity1, Prop_Send, "m_vecOrigin", pos);
-		GetEntPropVector(entity1, Prop_Send, "m_angRotation", rot);
-		int owner = GetEntPropEnt(entity1, Prop_Send, "m_hOwnerEntity");
-		
-		if (IsValidClient(entity2))
-		{
-			PreventGearActivation(owner, entity1);
-			return;
-		}
-		for (int i = 1; i <= MAXPLAYERS; i++)
-		{
-			if (entity2 == fakePlayersListCamera[i] || entity2 == fakePlayersListDrones[i])
-			{
-				PreventGearActivation(owner, entity1);
-				return;
-			}
-		}
-		
-		gearProjectiles.Erase(gearProjectiles.FindValue(entity1));
-		RemoveEdict(entity1);
-		if (IsClientTeamCameras(owner))
-			CreateCamera(owner, pos, rot);
-		else if (IsClientTeamDrones(owner))
-			CreateDrone(owner, pos, rot);
-		availabletGear[owner]--;
-	}
-}
-
-/**
-* Delete the given entity and displays an error message to the given player.
-*
-* @param entity1    index of the entity owner.
-* @param entity2    index of the entity.
-*/
-public void PreventGearActivation(int client_index, int entity_index) // Prevent gear acivation if gear hits player
-{
-	float pos[3];
-	GetEntPropVector(entity_index, Prop_Send, "m_vecOrigin", pos);
-	RemoveEdict(entity_index);
-	if (IsClientTeamCameras(client_index))
-	{
-		EmitSoundToAll(destroyDroneSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
-		PrintHintText(client_index, "<font color='#ff0000' size='25'>Your camera touched a player and was destroyed</font>");
-	}
-	else if (IsClientTeamDrones(client_index))
-	{
-		EmitSoundToAll(destroyCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
-		PrintHintText(client_index, "<font color='#ff0000' size='25'>Your drone touched a player and was destroyed</font>");
-	}
 }
 
 /************************************************************************************************************
@@ -609,11 +491,6 @@ public Action BuyGear(int client_index, int args)
 */
 public void BuyCamera(int client_index, bool isFree)
 {
-	if (availabletGear[client_index] >= 1)
-	{
-		PrintHintText(client_index, "<font color='#ff0000' size='30'>You already bought a camera</font>");
-		return;
-	}
 	if (!isFree)
 	{
 		int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
@@ -624,7 +501,6 @@ public void BuyCamera(int client_index, bool isFree)
 		}
 		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_camprice.IntValue);
 	}
-	GivePlayerItem(client_index, gearWeapon);
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a camera</font>");
 	availabletGear[client_index]++;
 }
@@ -637,11 +513,6 @@ public void BuyCamera(int client_index, bool isFree)
 */
 public void BuyDrone(int client_index, bool isFree)
 {
-	if (availabletGear[client_index] >= 1)
-	{
-		PrintHintText(client_index, "<font color='#ff0000' size='30'>You already bought a drone</font>");
-		return;
-	}
 	if (!isFree)
 	{
 		int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
@@ -652,15 +523,45 @@ public void BuyDrone(int client_index, bool isFree)
 		}
 		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_droneprice.IntValue);
 	}
-	GivePlayerItem(client_index, gearWeapon);
 	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a drone</font>");
 	availabletGear[client_index]++;
 }
 
 /**
+* Deploy the camera or drone depending on the player gear.
+*/
+public Action DeployGear(int client_index, int args)
+{
+	if (availabletGear[client_index] <= 0)
+	{
+		PrintHintText(client_index, "<font color='#ff0000'>No gear available</font>");
+		return Plugin_Handled;
+	}
+	if (!CanThrowGear(client_index))
+	{
+		
+	}
+	float pos[3], rot[3], vel[3];
+	GetClientEyePosition(client_index, pos)
+	GetClientEyeAngles(client_index, rot);
+	GetAngleVectors(rot, vel, NULL_VECTOR, NULL_VECTOR);
+	ScaleVector(vel, 200.0);
+	vel[2] += 50.0;
+	
+	if (IsClientTeamCameras(client_index))
+		CreateCamera(client_index, pos, rot, vel);
+	else if (IsClientTeamDrones(client_index))
+		CreateDrone(client_index, pos, rot, vel);
+	
+	availabletGear[client_index]--;
+	PrintHintText(client_index, "Remaining gear: %i", availabletGear[client_index]);
+	return Plugin_Handled;
+}
+
+/**
 * Opens the camera or drone depending on the player gear.
 */
-public Action OpenGear(int client_index, int args) //Set player skin if authorized
+public Action OpenGear(int client_index, int args)
 {
 	if (IsClientTeamCameras(client_index))
 		OpenCamera(client_index);
@@ -869,7 +770,6 @@ public void PickupGear(int client_index, int i)
 		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue)
 			PickupDrone(client_index, drone);
 	}
-	availabletGear[client_index]++;
 }
 
 /**
@@ -881,8 +781,8 @@ public void PickupGear(int client_index, int i)
 public void PickupCamera(int client_index, int cam)
 {
 	DestroyCamera(cam, true);
-	GivePlayerItem(client_index, gearWeapon);
-	PrintHintText(client_index, "<font color='#0fff00' size='25'>Camera recovered</font>");
+	availabletGear[client_index]++;
+	PrintHintText(client_index, "<font color='#9e5ef6'>Camera</font> recovered<br><font color='#ffffff'>Available gear:</font> <font color='#00ff00'>%i</font>", availabletGear[client_index]);
 }
 
 /**
@@ -894,8 +794,8 @@ public void PickupCamera(int client_index, int cam)
 public void PickupDrone(int client_index, int drone)
 {
 	DestroyDrone(drone, true);
-	GivePlayerItem(client_index, gearWeapon);
-	PrintHintText(client_index, "<font color='#0fff00' size='25'>Drone recovered</font>");
+	availabletGear[client_index]++;
+	PrintHintText(client_index, "<font color='#f6c65e'>Drone recovered</font><br><font color='#ffffff'>Available gear:</font> <font color='#00ff00'>%i</font>", availabletGear[client_index]);
 }
 
 /**
@@ -977,28 +877,6 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 				PickupGear(client_index, cam);
 			else if (drone  != -1 && dronesOwnerList.Length > 0 && dronesOwnerList.Get(drone) == client_index)
 				PickupGear(client_index, drone);
-		}
-		if (buttons & IN_ATTACK && (availabletGear[client_index] > 0 || !cvar_usetagrenade.BoolValue)) // Stop player from throwing the gear too far
-		{
-			int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
-			char weapon_name[64];
-			GetEntityClassname(weapon_index, weapon_name, sizeof(weapon_name))
-			if (StrEqual(weapon_name, gearWeapon, false))
-			{
-				buttons &= ~IN_ATTACK;
-				buttons |= IN_ATTACK2;
-			}
-		}
-		if ((buttons & IN_ATTACK2) && !cvar_usetagrenade.BoolValue) // Prevent player from throwing too many gear
-		{
-			int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
-			char weapon_name[64];
-			GetEntityClassname(weapon_index, weapon_name, sizeof(weapon_name))
-			if (StrEqual(weapon_name, gearWeapon, false) && !CanThrowGear(client_index))
-			{
-				float fUnlockTime = GetGameTime() + 1.0;
-				SetEntPropFloat(client_index, Prop_Send, "m_flNextAttack", fUnlockTime);
-			}
 		}
 	}
 	
@@ -1092,19 +970,6 @@ public Action Timer_IsJumping(Handle timer, any ref)
 ************************************************************************************************************/
 
 /**
-* Stops tactical grenade sounds only for cameras and drones.
-*/
-public Action NormalSoundHook(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags)
-{
-	if (IsValidEntity(entity) && gearProjectiles != null && gearProjectiles.FindValue(entity) != -1)
-	{
-		if (StrContains(sample, "sensor") != -1)
-			return Plugin_Stop;
-	}
-	return Plugin_Continue;
-}
-
-/**
 * Hide player only if using cam/drone.
 */
 public Action Hook_SetTransmitPlayer(int entity_index, int client_index)
@@ -1149,20 +1014,6 @@ public Action Hook_WeaponCanUse(int client_index, int weapon_index)
 }
 
 /**
-* If player switches to his gear, display how many he has available.
-*/
-public Action Hook_WeaponSwitch(int client_index, int weapon_index)
-{
-	char name[64];
-	GetEdictClassname(weapon_index, name, sizeof(name));
-	if (StrEqual(name, gearWeapon, false) && availabletGear[client_index] > 0 && cvar_usetagrenade.BoolValue)
-	{
-		PrintHintText(client_index, "Available gear: %i", availabletGear[client_index]);
-	}
-	return Plugin_Continue;
-}
-
-/**
 * Destroy the gear if an enemy or the owner is shooting at it,
 * or if a teammate is shooting at it and tk is enabled (with a cvar).
 */
@@ -1198,19 +1049,13 @@ public Action Hook_TakeDamagePlayer(int victim, int &attacker, int &inflictor, f
 }
 
 /**
-* Stops drop command if the player is in gear and prevents player from dropping his gear weapon.
+* Stops drop command if the player is in gear.
 */
 public Action CommandDrop(int client_index, const char[] command, int argc)
 {
 	if (IsClientInGear(client_index))
 		return Plugin_Handled;
 	
-	int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
-	if (IsWeaponGear(weapon_index))
-	{
-		PrintHintText(client_index, "You cannot drop your gear");
-		return Plugin_Handled;
-	}
 	return Plugin_Continue;
 }
 
@@ -1333,19 +1178,6 @@ public void CreateFakePlayer(int client_index, bool isCam)
 /************************************************************************************************************
 *											TESTS
 ************************************************************************************************************/
-
-/**
-* Returns whether the given weapon is used as gear or not.
-*
-* @param weapon_index		index of the weapon.
-* @return					true if the weapon is used for gear, false otherwise.
-*/
-public bool IsWeaponGear(int weapon_index)
-{
-	char weapon_name[64];
-	GetEntityClassname(weapon_index, weapon_name, sizeof(weapon_name))
-	return StrEqual(weapon_name, gearWeapon, false);
-}
 
 /**
 * Checks whether the given player is using his gear or not.

@@ -40,8 +40,6 @@ ConVar cvar_usecamangles = null;
 ConVar cvar_usecustomdrone_model = null;
 ConVar cvar_usecustomcam_model = null;
 
-ConVar cvar_usetagrenade = null;
-
  /**
  * Creates plugin cvars.
  *
@@ -81,8 +79,6 @@ public void CreateConVars(char[] version)
 	cvar_usecustomcam_model = CreateConVar("cd_usecustomcam_model", "0", "Set whether to use a model specified in sourcemod/gamedata/custom_models.txt.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	cvar_usecustomcam_model.AddChangeHook(OnUseCustomCamChange);
 	
-	
-	cvar_usetagrenade = CreateConVar("cd_usetagrenade", "0", "Set whether to use TA-Grenades when gear not bought.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	AutoExecConfig(true, "cameras-and-drones");
 }
 
@@ -95,6 +91,7 @@ public void RegisterCommands()
 	RegAdminCmd("cd_reloadmodels", ReloadModelsList, ADMFLAG_GENERIC, "Reload custom models file");
 	RegConsoleCmd("cd_buy", BuyGear, "Buy team gear");
 	RegConsoleCmd("cd_cam", OpenGear, "Open gear");
+	RegConsoleCmd("cd_deploy", DeployGear, "Deploy gear");
 	RegConsoleCmd("cd_help", ShowHelp, "Show plugin help");
 	RegConsoleCmd("say !cd_help", ShowHelp, "Show plugin help");
 }
