@@ -49,6 +49,9 @@
 
 #define customModelsPath "gamedata/cameras-and-drones/custom_models.txt"
 
+#define droneHTML "<font color='#f6c65e'>Drone</font>"
+#define camHTML "<font color='#9e5ef6'>Camera</font>"
+
 bool lateload;
 
 int clientsViewmodels[MAXPLAYERS + 1];
@@ -496,12 +499,14 @@ public void BuyCamera(int client_index, bool isFree)
 		int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
 		if (cvar_camprice.IntValue > money)
 		{
-			PrintHintText(client_index, "<font color='#ff0000' size='30'>Not enough money</font>");
+			PrintHintText(client_index, 
+			"<font color='#ff0000'>Not enough money</font><br>Needed: <font color='#ff0000'>%i</font><br>Have: <font color='#00ff00'>%i</font>", 
+			cvar_camprice.IntValue, money);
 			return;
 		}
 		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_camprice.IntValue);
 	}
-	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a camera</font>");
+	PrintHintText(client_index, "<font color='#0fff00'>You just bought a</font> %s", camHTML);
 	availabletGear[client_index]++;
 }
 
@@ -518,12 +523,14 @@ public void BuyDrone(int client_index, bool isFree)
 		int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
 		if (cvar_droneprice.IntValue > money)
 		{
-			PrintHintText(client_index, "<font color='#ff0000' size='30'>Not enough money</font>");
+			PrintHintText(client_index, 
+			"<font color='#ff0000'>Not enough money</font><br>Needed: <font color='#ff0000'>%i</font><br>Have: <font color='#00ff00'>%i</font>", 
+			cvar_droneprice.IntValue, money);
 			return;
 		}
 		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_droneprice.IntValue);
 	}
-	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a drone</font>");
+	PrintHintText(client_index, "<font color='#0fff00'>You just bought a</font> %s", droneHTML);
 	availabletGear[client_index]++;
 }
 
@@ -554,7 +561,10 @@ public Action DeployGear(int client_index, int args)
 		CreateDrone(client_index, pos, rot, vel);
 	
 	availabletGear[client_index]--;
-	PrintHintText(client_index, "Remaining gear: %i", availabletGear[client_index]);
+	if (IsClientTeamCameras(client_index))
+		PrintHintText(client_index, "Remaining %s: %i", camHTML, availabletGear[client_index]);
+	else if (IsClientTeamDrones(client_index))
+		PrintHintText(client_index, "Remaining %s: %i", droneHTML, availabletGear[client_index]);
 	return Plugin_Handled;
 }
 
@@ -587,12 +597,12 @@ public void OpenCamera(int client_index)
 	}
 	if (!(GetEntityFlags(client_index) & FL_ONGROUND))
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='25'>Cannot use cameras while jumping</font>");
+		PrintHintText(client_index, "<font color='#ff0000'>Cannot use %s while jumping</font>", camHTML);
 		return;
 	}
 	if (camerasList.Length == 0)
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='30'>No cameras available</font>");
+		PrintHintText(client_index, "<font color='#ff0000'>No %s available</font>", camHTML);
 		return;
 	}
 	int owner;
@@ -632,12 +642,12 @@ public void OpenDrone(int client_index)
 	}
 	if (!(GetEntityFlags(client_index) & FL_ONGROUND))
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='25'>Cannot use drones while jumping</font>");
+		PrintHintText(client_index, "<font color='#ff0000'>Cannot use %s while jumping</font>", droneHTML);
 		return;
 	}
 	if (dronesList.Length == 0)
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='30'>No drones available</font>");
+		PrintHintText(client_index, "<font color='#ff0000'>No %s available</font>", droneHTML);
 		return;
 	}
 	int owner;
@@ -656,7 +666,7 @@ public void OpenDrone(int client_index)
 	}
 	if (target == -1)
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='30'>No drones available</font>");
+		PrintHintText(client_index, "<font color='#ff0000'>No %s available</font>", droneHTML);
 		return;
 	}
 	
@@ -706,7 +716,7 @@ public bool CanThrowCamera(int client_index)
 		if (canDisplayThrowWarning[client_index])
 		{
 			canDisplayThrowWarning[client_index] = false;
-			PrintHintText(client_index, "<font color='#ff0000' size='25'>You cannot place any more cameras</font>");
+			PrintHintText(client_index, "<font color='#ff0000'>You cannot place any more</font> %s", camHTML);
 			int ref = EntIndexToEntRef(client_index);
 			CreateTimer(1.0, Timer_DisplayThrowWarning, ref);
 		}
@@ -736,7 +746,7 @@ public bool CanThrowDrone(int client_index)
 		if (canDisplayThrowWarning[client_index])
 		{
 			canDisplayThrowWarning[client_index] = false;
-			PrintHintText(client_index, "<font color='#ff0000' size='25'>You cannot place any more drones</font>");
+			PrintHintText(client_index, "<font color='#ff0000'>You cannot place any more</font> %s", droneHTML);
 			int ref = EntIndexToEntRef(client_index);
 			CreateTimer(1.0, Timer_DisplayThrowWarning, ref);
 		}
@@ -782,7 +792,7 @@ public void PickupCamera(int client_index, int cam)
 {
 	DestroyCamera(cam, true);
 	availabletGear[client_index]++;
-	PrintHintText(client_index, "<font color='#9e5ef6'>Camera</font> recovered<br><font color='#ffffff'>Available gear:</font> <font color='#00ff00'>%i</font>", availabletGear[client_index]);
+	PrintHintText(client_index, "%s recovered<br><font color='#ffffff'>Available gear:</font> <font color='#00ff00'>%i</font>", camHTML, availabletGear[client_index]);
 }
 
 /**
@@ -795,7 +805,7 @@ public void PickupDrone(int client_index, int drone)
 {
 	DestroyDrone(drone, true);
 	availabletGear[client_index]++;
-	PrintHintText(client_index, "<font color='#f6c65e'>Drone recovered</font><br><font color='#ffffff'>Available gear:</font> <font color='#00ff00'>%i</font>", availabletGear[client_index]);
+	PrintHintText(client_index, "%s recovered</font><br><font color='#ffffff'>Available gear:</font> <font color='#00ff00'>%i</font>", droneHTML, availabletGear[client_index]);
 }
 
 /**
