@@ -170,6 +170,7 @@ public void OnMapStart()
 public void OnClientPostAdminCheck(int client_index)
 {
 	SDKHook(client_index, SDKHook_WeaponCanUse, Hook_WeaponCanUse);
+	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkPlayer);
 	int ref = EntIndexToEntRef(client_index);
 	CreateTimer(3.0, Timer_WelcomeMessage, ref);
 }
@@ -182,6 +183,8 @@ public void OnClientPostAdminCheck(int client_index)
 public void OnClientDisconnect(int client_index)
 {
 	ResetPlayer(client_index);
+	SDKUnhook(client_index, SDKHook_PostThink, Hook_PostThinkPlayer);
+	SDKUnhook(client_index, SDKHook_WeaponCanUse, Hook_WeaponCanUse);
 }
 
 /**
@@ -227,6 +230,7 @@ public void InitVars()
 	dronesList = new ArrayList();
 	dronesModelList = new ArrayList();
 	dronesOwnerList = new ArrayList();
+	camerasProjectiles = new ArrayList();
 	
 	droneSpeed = cvar_dronespeed.FloatValue;
 	droneJumpForce = cvar_dronejump.FloatValue;
@@ -978,6 +982,32 @@ public Action Timer_IsJumping(Handle timer, any ref)
 /************************************************************************************************************
 *											HOOKS
 ************************************************************************************************************/
+
+public Action Hook_PostThinkPlayer(int client_index)
+{
+	if (camerasProjectiles == null || camerasProjectiles.Length == 0 || cvar_cam_box_size.IntValue == 0)
+		return Plugin_Continue;
+	
+	for (int i = 0; i < camerasProjectiles.Length; i++)
+	{
+		int cam = camerasProjectiles.Get(i);
+		float x = cvar_cam_box_size.FloatValue / 2.0;
+		float boxMin[3], boxMax[3], pos[3];
+		for (int j = 0; j < sizeof(boxMax); j++)
+		{
+			boxMin[j] = -x;
+			boxMax[j] = x;
+		}
+		GetEntPropVector(cam, Prop_Send, "m_vecOrigin", pos);
+		TR_TraceHullFilter(pos, pos, boxMin, boxMax, MASK_SOLID, TRFilter_NoPlayer, cam);
+		if (TR_DidHit())
+		{
+			SetEntityMoveType(cam, MOVETYPE_NONE)
+			camerasProjectiles.Erase(i);
+		}
+	}
+	return Plugin_Continue;
+}
 
 /**
 * Hide player only if using cam/drone.

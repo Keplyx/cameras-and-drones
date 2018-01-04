@@ -40,6 +40,8 @@ ConVar cvar_usecamangles = null;
 ConVar cvar_usecustomdrone_model = null;
 ConVar cvar_usecustomcam_model = null;
 
+ConVar cvar_cam_box_size = null;
+
  /**
  * Creates plugin cvars.
  *
@@ -78,6 +80,8 @@ public void CreateConVars(char[] version)
 	cvar_usecustomdrone_model.AddChangeHook(OnUseCustomDroneChange);
 	cvar_usecustomcam_model = CreateConVar("cd_usecustomcam_model", "0", "Set whether to use a model specified in sourcemod/gamedata/custom_models.txt.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	cvar_usecustomcam_model.AddChangeHook(OnUseCustomCamChange);
+	
+	cvar_cam_box_size = CreateConVar("cd_cam_box_size", "15", "Size of the edge of the box surrounding the cam, used to detect if it touches something. Camera will freeze when something enters this box. Set to 0 if you don't want sticky cameras.", FCVAR_NOTIFY, true, 0.0, true, 500.0);
 	
 	AutoExecConfig(true, "cameras-and-drones");
 }

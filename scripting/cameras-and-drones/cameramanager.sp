@@ -25,13 +25,14 @@ char destroyCamSound[] = "physics/metal/metal_box_impact_bullet1.wav";
 // MODELS
 char inCamModel[] = "models/chicken/festive_egg.mdl"; // must have hitbox or it will use the default player one
 char defaultCamModel[] = "models/weapons/w_eq_sensorgrenade_thrown.mdl";
-char defaultCamPhysModel[] = "models/props/de_inferno/hr_i/ground_stone/ground_stone.mdl"; // Must surround cam
+char defaultCamPhysModel[] = "models/weapons/w_eq_sensorgrenade_thrown.mdl"; // Must surround cam
 char customCamModel[PLATFORM_MAX_PATH];
 char customCamPhysModel[PLATFORM_MAX_PATH];
 // LISTS
 ArrayList camerasList;
 ArrayList camerasModelList;
 ArrayList camOwnersList;
+ArrayList camerasProjectiles;
 int activeCam[MAXPLAYERS + 1][3]; // 0: phys, 1: model, 2: flash
 int fakePlayersListCamera[MAXPLAYERS + 1];
 
@@ -81,7 +82,7 @@ public void RemoveCameraFromList(int cam)
  */
 public void CreateCamera(int client_index, float pos[3], float rot[3], float vel[3])
 {
-	int cam = CreateEntityByName("prop_dynamic_override");
+	int cam = CreateEntityByName("prop_physics_override");
 	if (IsValidEntity(cam)) {
 		SetCameraPhysicsModel(cam);
 		DispatchKeyValue(cam, "solid", "6");
@@ -92,9 +93,15 @@ public void CreateCamera(int client_index, float pos[3], float rot[3], float vel
 		TeleportEntity(cam, pos, rot, vel);
 		
 		SDKHook(cam, SDKHook_OnTakeDamage, Hook_TakeDamageGear);
+		camerasProjectiles.Push(cam);
 		SetEntityRenderMode(cam, RENDER_NONE);
 		CreateCameraModel(client_index, cam);
 	}
+}
+
+public bool TRFilter_NoPlayer(int entity_index, int mask, any data)
+{
+	return entity_index != data && (entity_index <= 0 || entity_index > MAXPLAYERS);
 }
 
  /**
