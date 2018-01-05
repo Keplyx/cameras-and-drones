@@ -44,6 +44,7 @@ ConVar cvar_cam_box_size = null;
 
 ConVar cvar_buytime = null;
 ConVar cvar_buytime_start = null;
+ConVar cvar_keep_between_rounds = null;
 
  /**
  * Creates plugin cvars.
@@ -86,6 +87,8 @@ public void CreateConVars(char[] version)
 	cvar_custom_model_drone.AddChangeHook(OnCvarChange);
 	cvar_custom_model_cam = CreateConVar("cd_custom_model_cam", "0", "Set whether to use a model specified in sourcemod/gamedata/custom_models.txt.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	cvar_custom_model_cam.AddChangeHook(OnCvarChange);
+	
+	cvar_keep_between_rounds = CreateConVar("cd_keep_between_rounds", "1", "Set whether to keep gear between rounds when staying alive with one. This will also keep override state.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	
 	cvar_cam_box_size = CreateConVar("cd_cam_box_size", "15", "Size of the edge of the box surrounding the cam, used to detect if it touches something. Camera will freeze when something enters this box. Set to 0 if you don't want sticky cameras.", FCVAR_NOTIFY, true, 0.0, true, 500.0);
 	

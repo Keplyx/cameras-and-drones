@@ -109,6 +109,8 @@ public void OnPluginStart()
 	
 	collisionOffsets = FindSendPropInfo("CBaseEntity", "m_CollisionGroup");
 	
+	InitVars(false);
+	
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if (IsValidClient(i) && !IsFakeClient(i))
@@ -228,7 +230,7 @@ public void ResetPlayer(int client_index)
 * Initializes variables with default values.
 *
 */
-public void InitVars()
+public void InitVars(bool isNewRound)
 {
 	camerasList = new ArrayList();
 	camerasModelList = new ArrayList();
@@ -248,6 +250,20 @@ public void InitVars()
 	
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
+		if (isNewRound && cvar_keep_between_rounds.BoolValue)
+		{
+			if (availabletGear[i] <= 0)
+			{
+				availabletGear[i] = 0;
+				playerGearOverride[i] = 0;
+			}
+		}
+		else
+		{
+			availabletGear[i] = 0;
+			playerGearOverride[i] = 0;
+		}
+		
 		for (int j = 0; j < sizeof(activeCam[]); j++)
 		{
 			activeCam[i][j] = -1;
@@ -258,11 +274,9 @@ public void InitVars()
 		}
 		fakePlayersListCamera[i] = -1;
 		fakePlayersListDrones[i] = -1;
-		availabletGear[i] = 0;
 		canDisplayThrowWarning[i] = true;
 		canDroneJump[i] = true;
 		isDroneJumping[i] = false;
-		playerGearOverride[i] = 0;
 		canBuy[i] = true;
 	}
 }
@@ -361,7 +375,7 @@ public int Native_IsPlayerInGear(Handle plugin, int numParams)
 */
 public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
 {
-	InitVars();
+	InitVars(true);
 	ResetDronesMenuAll();
 	ResetCamerasMenuAll();
 	for(int i = 0;  i < MAXPLAYERS; i++)
