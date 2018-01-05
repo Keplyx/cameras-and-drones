@@ -364,7 +364,9 @@ public Action ShowHelp(int client_index, int args)
 	PrintToConsole(client_index, "|---- CONSOLE ----|-- IN CHAT --|-- DESCRIPTION --------|");
 	PrintToConsole(client_index, "|cd_buy           |             |Buy team gear          |");
 	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
-	PrintToConsole(client_index, "|cd_cam           |             |Open gear              |");
+	PrintToConsole(client_index, "|cd_deploy        |             |Deploy gear            |");
+	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
+	PrintToConsole(client_index, "|cd_toggle        |             |Toggle gear open/closed|");
 	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
 	PrintToConsole(client_index, "|cd_help          |!cd_help     |Display this help      |");
 	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
@@ -379,7 +381,8 @@ public Action ShowHelp(int client_index, int args)
 	PrintToConsole(client_index, "bind 'KEY' 'COMMAND' | This will bind 'COMMAND to 'KEY'");
 	PrintToConsole(client_index, "EXAMPLE:");
 	PrintToConsole(client_index, "bind \"z\" \"cd_buy\" | This will bind the buy command to the <Z> key");
-	PrintToConsole(client_index, "bind \"x\" \"cd_cam\" | This will bind the open command to the <X> key");
+	PrintToConsole(client_index, "bind \"x\" \"cd_deploy\" | This will bind the deploy command to the <X> key");
+	PrintToConsole(client_index, "bind \"c\" \"cd_toggle\" | This will bind the toggle command to the <C> key");
 	
 	CPrintToChat(client_index, "{green}----- CAMERAS AND DRONES HELP -----");
 	CPrintToChat(client_index, "{lime}>>> START");
@@ -510,7 +513,7 @@ public void BuyCamera(int client_index, bool isFree)
 		}
 		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_camprice.IntValue);
 	}
-	PrintHintText(client_index, "<font color='#0fff00'>You just bought a</font> %s", camHTML);
+	PrintHintText(client_index, "<font color='#0fff00'>You just bought a</font> %s<br>Use <font color='#00ff00'>cd_deploy</font> to deploy it.", camHTML);
 	availabletGear[client_index]++;
 }
 
@@ -534,7 +537,7 @@ public void BuyDrone(int client_index, bool isFree)
 		}
 		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_droneprice.IntValue);
 	}
-	PrintHintText(client_index, "<font color='#0fff00'>You just bought a</font> %s", droneHTML);
+	PrintHintText(client_index, "<font color='#0fff00'>You just bought a</font> %s<br>Use <font color='#00ff00'>cd_deploy</font> to deploy it.", droneHTML);
 	availabletGear[client_index]++;
 }
 
@@ -566,17 +569,24 @@ public Action DeployGear(int client_index, int args)
 	
 	availabletGear[client_index]--;
 	if (IsClientTeamCameras(client_index))
-		PrintHintText(client_index, "Remaining %s: %i", camHTML, availabletGear[client_index]);
+		PrintHintText(client_index, "%s deployed.<br>Remaining: %i<br>Use <font color='#00ff00'>cd_toggle</font> to use it.", camHTML, availabletGear[client_index]);
 	else if (IsClientTeamDrones(client_index))
-		PrintHintText(client_index, "Remaining %s: %i", droneHTML, availabletGear[client_index]);
+		PrintHintText(client_index, "%s deployed.<br>Remaining: %i<br>Use <font color='#00ff00'>cd_toggle</font> to use it.", droneHTML, availabletGear[client_index]);
 	return Plugin_Handled;
 }
 
 /**
 * Opens the camera or drone depending on the player gear.
+* If the given player is already in gear, close it.
 */
-public Action OpenGear(int client_index, int args)
+public Action ToggleGear(int client_index, int args)
 {
+	if (IsClientInGear(client_index))
+	{
+		CloseGear(client_index);
+		return Plugin_Handled;
+	}
+	
 	if (IsClientTeamCameras(client_index))
 		OpenCamera(client_index);
 	else if (IsClientTeamDrones(client_index))
@@ -588,17 +598,11 @@ public Action OpenGear(int client_index, int args)
 /**
 * If the given player is not in the air and at least one camera is available,
 * puts the player in his camera, or in an other one available if the player doesn't have any.
-* If the given player is already in a camera, close it.
 *
 * @param client_index    index of the client.
 */
 public void OpenCamera(int client_index)
 {
-	if (IsClientInCam(client_index))
-	{
-		CloseGear(client_index);
-		return;
-	}
 	if (!(GetEntityFlags(client_index) & FL_ONGROUND))
 	{
 		PrintHintText(client_index, "<font color='#ff0000'>Cannot use %s while jumping</font>", camHTML);
@@ -633,17 +637,11 @@ public void OpenCamera(int client_index)
 /**
 * If the given player is not in the air and has at least one drone available,
 * puts the player in one of his drones.
-* If the given player is already in a drone, close it.
 *
 * @param client_index    index of the client.
 */
 public void OpenDrone(int client_index)
 {
-	if (IsClientInDrone(client_index))
-	{
-		CloseGear(client_index);
-		return;
-	}
 	if (!(GetEntityFlags(client_index) & FL_ONGROUND))
 	{
 		PrintHintText(client_index, "<font color='#ff0000'>Cannot use %s while jumping</font>", droneHTML);
