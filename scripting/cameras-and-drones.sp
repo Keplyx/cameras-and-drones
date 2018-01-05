@@ -58,6 +58,9 @@ int clientsViewmodels[MAXPLAYERS + 1];
 
 char gearOverlay[] = "vgui/screens/vgui_overlay";
 
+char cantBuyGearSound[] = "ui/weapon_cant_buy.wav";
+char getGearSound[] = "items/itempickup.wav";
+
 bool canDisplayThrowWarning[MAXPLAYERS + 1];
 bool canDroneJump[MAXPLAYERS + 1];
 bool isDroneJumping[MAXPLAYERS + 1];
@@ -154,6 +157,8 @@ public void OnMapStart()
 	PrecacheModel(defaultDronePhysModel, true);
 	PrecacheModel(defaultCamPhysModel, true);
 	
+	PrecacheSound(cantBuyGearSound, true);
+	PrecacheSound(getGearSound, true);
 	PrecacheSound(droneSound, true);
 	PrecacheSound(droneJumpSound, true);
 	PrecacheSound(openDroneSound, true);
@@ -552,6 +557,7 @@ public void BuyCamera(int client_index, bool isFree)
 	if (!canBuy[client_index])
 	{
 		PrintHintText(client_index, "<font color='#ff0000'>Buy time expired</font>");
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		return;
 	}
 	if (!isFree)
@@ -562,10 +568,13 @@ public void BuyCamera(int client_index, bool isFree)
 			PrintHintText(client_index, 
 			"<font color='#ff0000'>Not enough money</font><br>Needed: <font color='#ff0000'>%i</font><br>Have: <font color='#00ff00'>%i</font>", 
 			cvar_camprice.IntValue, money);
+			EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 			return;
 		}
 		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_camprice.IntValue);
 	}
+	
+	EmitSoundToClient(client_index, getGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 	PrintHintText(client_index, "<font color='#0fff00'>You just bought a</font> %s<br>Use <font color='#00ff00'>cd_deploy</font> to deploy it.", camHTML);
 	availabletGear[client_index]++;
 }
@@ -581,6 +590,7 @@ public void BuyDrone(int client_index, bool isFree)
 	if (!canBuy[client_index])
 	{
 		PrintHintText(client_index, "<font color='#ff0000'>Buy time expired</font>");
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		return;
 	}
 	if (!isFree)
@@ -591,10 +601,12 @@ public void BuyDrone(int client_index, bool isFree)
 			PrintHintText(client_index, 
 			"<font color='#ff0000'>Not enough money</font><br>Needed: <font color='#ff0000'>%i</font><br>Have: <font color='#00ff00'>%i</font>", 
 			cvar_droneprice.IntValue, money);
+			EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 			return;
 		}
 		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_droneprice.IntValue);
 	}
+	EmitSoundToClient(client_index, getGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 	PrintHintText(client_index, "<font color='#0fff00'>You just bought a</font> %s<br>Use <font color='#00ff00'>cd_deploy</font> to deploy it.", droneHTML);
 	availabletGear[client_index]++;
 }
@@ -607,6 +619,7 @@ public Action DeployGear(int client_index, int args)
 	if (availabletGear[client_index] <= 0)
 	{
 		PrintHintText(client_index, "<font color='#ff0000'>No gear available</font>");
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		return Plugin_Handled;
 	}
 	if (!CanThrowGear(client_index))
@@ -664,11 +677,13 @@ public void OpenCamera(int client_index)
 	if (!(GetEntityFlags(client_index) & FL_ONGROUND))
 	{
 		PrintHintText(client_index, "<font color='#ff0000'>Cannot use %s while jumping</font>", camHTML);
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		return;
 	}
 	if (camerasList.Length == 0)
 	{
 		PrintHintText(client_index, "<font color='#ff0000'>No %s available</font>", camHTML);
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		return;
 	}
 	int owner;
@@ -703,11 +718,13 @@ public void OpenDrone(int client_index)
 	if (!(GetEntityFlags(client_index) & FL_ONGROUND))
 	{
 		PrintHintText(client_index, "<font color='#ff0000'>Cannot use %s while jumping</font>", droneHTML);
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		return;
 	}
 	if (dronesList.Length == 0)
 	{
 		PrintHintText(client_index, "<font color='#ff0000'>No %s available</font>", droneHTML);
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		return;
 	}
 	int owner;
@@ -727,6 +744,7 @@ public void OpenDrone(int client_index)
 	if (target == -1)
 	{
 		PrintHintText(client_index, "<font color='#ff0000'>No %s available</font>", droneHTML);
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		return;
 	}
 	
