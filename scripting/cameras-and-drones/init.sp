@@ -36,11 +36,14 @@ ConVar cvar_dronespeed = null;
 ConVar cvar_dronejump = null;
 ConVar cvar_dronehoverheight = null;
 
-ConVar cvar_usecamangles = null;
-ConVar cvar_usecustomdrone_model = null;
-ConVar cvar_usecustomcam_model = null;
+ConVar cvar_use_cam_angles = null;
+ConVar cvar_custom_model_drone = null;
+ConVar cvar_custom_model_cam = null;
 
 ConVar cvar_cam_box_size = null;
+
+ConVar cvar_buytime = null;
+ConVar cvar_buytime_start = null;
 
  /**
  * Creates plugin cvars.
@@ -68,18 +71,21 @@ public void CreateConVars(char[] version)
 	cvar_dronespeed = CreateConVar("cd_dronespeed", "150", "Set the drone speed. 130 = human walk, 250 = human run", FCVAR_NOTIFY, true, 1.0, true, 500.0);
 	cvar_dronejump = CreateConVar("cd_dronejump", "300", "Set drone jump force", FCVAR_NOTIFY, true, 0.0, true, 500.0);
 	cvar_dronehoverheight = CreateConVar("cd_dronehoverheight", "5", "The hover height of your drone. Setting it too hight or too low will break the drone. It should match the phys model size.", FCVAR_NOTIFY, true, 1.0, true, 150.0);
-	cvar_dronespeed.AddChangeHook(OnDroneSpeedChange);
-	cvar_dronejump.AddChangeHook(OnDroneJumpChange);
-	cvar_dronehoverheight.AddChangeHook(OnDroneHoverHeightChange);
+	cvar_dronespeed.AddChangeHook(OnCvarChange);
+	cvar_dronejump.AddChangeHook(OnCvarChange);
+	cvar_dronehoverheight.AddChangeHook(OnCvarChange);
 	
+	cvar_buytime = CreateConVar("cd_buytime", "-2", "Set how much time (in seconds) players have to buy their gear. -2 to use 'mp_buytime' value, -1 = forever", FCVAR_NOTIFY, true, -2.0, true, 3600.0);
+	cvar_buytime_start = CreateConVar("cd_buytime_start", "0", "Set when to start buy time counter. 0 = on round start, 1 = on spawn", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	cvar_buytime.AddChangeHook(OnCvarChange);
 	
-	cvar_usecamangles = CreateConVar("cd_usecamangles", "1", "Set whether to use camera angles when using it.", FCVAR_NOTIFY, true, 0.0, true, 1.0); 
-	cvar_usecamangles.AddChangeHook(OnUseCamAnglesChange);
+	cvar_use_cam_angles = CreateConVar("cd_use_cam_angles", "1", "Set whether to use camera angles when using it.", FCVAR_NOTIFY, true, 0.0, true, 1.0); 
+	cvar_use_cam_angles.AddChangeHook(OnCvarChange);
 	
-	cvar_usecustomdrone_model = CreateConVar("cd_usecustomdrone_model", "0", "Set whether to use a model specified in sourcemod/gamedata/custom_models.txt.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	cvar_usecustomdrone_model.AddChangeHook(OnUseCustomDroneChange);
-	cvar_usecustomcam_model = CreateConVar("cd_usecustomcam_model", "0", "Set whether to use a model specified in sourcemod/gamedata/custom_models.txt.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	cvar_usecustomcam_model.AddChangeHook(OnUseCustomCamChange);
+	cvar_custom_model_drone = CreateConVar("cd_custom_model_drone", "0", "Set whether to use a model specified in sourcemod/gamedata/custom_models.txt.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	cvar_custom_model_drone.AddChangeHook(OnCvarChange);
+	cvar_custom_model_cam = CreateConVar("cd_custom_model_cam", "0", "Set whether to use a model specified in sourcemod/gamedata/custom_models.txt.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	cvar_custom_model_cam.AddChangeHook(OnCvarChange);
 	
 	cvar_cam_box_size = CreateConVar("cd_cam_box_size", "15", "Size of the edge of the box surrounding the cam, used to detect if it touches something. Camera will freeze when something enters this box. Set to 0 if you don't want sticky cameras.", FCVAR_NOTIFY, true, 0.0, true, 500.0);
 	

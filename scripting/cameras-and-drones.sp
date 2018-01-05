@@ -65,9 +65,9 @@ bool isDroneJumping[MAXPLAYERS + 1];
 int collisionOffsets;
 
 int availabletGear[MAXPLAYERS + 1];
-
+bool canBuy[MAXPLAYERS + 1];
 int playerGearOverride[MAXPLAYERS + 1];
-
+float buyTime;
 
 
 /************************************************************************************************************
@@ -216,6 +216,7 @@ public void ResetPlayer(int client_index)
 	canDroneJump[client_index] = true;
 	isDroneJumping[client_index] = false;
 	playerGearOverride[client_index] = 0;
+	canBuy[client_index] = true;
 }
 
 /**
@@ -235,9 +236,10 @@ public void InitVars()
 	droneSpeed = cvar_dronespeed.FloatValue;
 	droneJumpForce = cvar_dronejump.FloatValue;
 	droneHoverHeight = cvar_dronehoverheight.FloatValue;
-	useCamAngles = cvar_usecamangles.BoolValue;
-	useCustomCamModel = cvar_usecustomcam_model.BoolValue;
-	useCustomDroneModel = cvar_usecustomdrone_model.BoolValue;
+	useCamAngles = cvar_use_cam_angles.BoolValue;
+	useCustomCamModel = cvar_custom_model_cam.BoolValue;
+	useCustomDroneModel = cvar_custom_model_drone.BoolValue;
+	SetBuyTime();
 	
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
@@ -256,7 +258,40 @@ public void InitVars()
 		canDroneJump[i] = true;
 		isDroneJumping[i] = false;
 		playerGearOverride[i] = 0;
+		canBuy[i] = true;
 	}
+}
+
+/**
+* Set whether a specific client or every clients can buy gear.
+*
+* @param client_index		Index of the client. -1 for every client.
+* @param state				Whether the client can buy.
+*/
+public void SetBuyState(int client_index, bool state)
+{
+	if (IsValidClient(client_index))
+		canBuy[client_index] = state;
+	else
+	{
+		for (int i = 0; i < sizeof(canBuy); i++)
+		{
+			canBuy[i] = state;
+		}
+	}
+}
+
+/**
+* Set the buy time based on the cvar value.
+*/
+public void SetBuyTime()
+{
+	if (cvar_buytime.IntValue == -1)
+		buyTime = -1.0;
+	else if (cvar_buytime.IntValue == -2)
+		buyTime = FindConVar("mp_buytime").FloatValue;
+	else
+		buyTime = cvar_buytime.FloatValue;
 }
 
 /************************************************************************************************************
@@ -329,6 +364,12 @@ public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast
 		if (IsValidClient(i))
 			CloseGear(i);
 	}
+	if (cvar_buytime_start.IntValue == 0)
+	{
+		SetBuyState(-1, true);
+		if (buyTime >= 0.0)
+			CreateTimer(buyTime, Timer_BuyTime, -1);
+	}
 }
 
 /**
@@ -337,8 +378,15 @@ public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client_index = GetClientOfUserId(GetEventInt(event, "userid"));
+	int ref = EntIndexToEntRef(client_index);
 	clientsViewmodels[client_index] = GetViewModelIndex(client_index);
 	CloseGear(client_index);
+	if (cvar_buytime_start.IntValue == 1)
+	{
+		SetBuyState(client_index, true);
+		if (buyTime >= 0.0)
+			CreateTimer(buyTime, Timer_BuyTime, ref);
+	}
 }
 
 /************************************************************************************************************
@@ -501,6 +549,11 @@ public Action BuyGear(int client_index, int args)
 */
 public void BuyCamera(int client_index, bool isFree)
 {
+	if (!canBuy[client_index])
+	{
+		PrintHintText(client_index, "<font color='#ff0000'>Buy time expired</font>");
+		return;
+	}
 	if (!isFree)
 	{
 		int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
@@ -525,6 +578,11 @@ public void BuyCamera(int client_index, bool isFree)
 */
 public void BuyDrone(int client_index, bool isFree)
 {
+	if (!canBuy[client_index])
+	{
+		PrintHintText(client_index, "<font color='#ff0000'>Buy time expired</font>");
+		return;
+	}
 	if (!isFree)
 	{
 		int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
@@ -977,6 +1035,19 @@ public Action Timer_IsJumping(Handle timer, any ref)
 	}
 }
 
+ /**
+ * Stops players from buying after a time limit.
+ * This limit can be set by cvar.
+ */
+public Action Timer_BuyTime(Handle timer, any ref)
+{
+	int client_index = EntRefToEntIndex(ref);
+	if (IsValidClient(client_index))
+		SetBuyState(client_index, false);
+	else
+		SetBuyState(-1, false);
+}
+
 /************************************************************************************************************
 *											HOOKS
 ************************************************************************************************************/
@@ -1375,34 +1446,25 @@ public void HideHudGuns(int client_index)
 *											CONVARS
 ************************************************************************************************************/
 
-public void OnDroneSpeedChange(ConVar convar, char[] oldValue, char[] newValue)
+/**
+* Changes the variables associated to the cvars when changed.
+*/
+public void OnCvarChange(ConVar convar, char[] oldValue, char[] newValue)
 {
-	droneSpeed = convar.FloatValue;
-}
-
-public void OnDroneJumpChange(ConVar convar, char[] oldValue, char[] newValue)
-{
-	droneJumpForce = convar.FloatValue;
-}
-
-public void OnUseCamAnglesChange(ConVar convar, char[] oldValue, char[] newValue)
-{
-	useCamAngles = convar.BoolValue;
-}
-
-public void OnUseCustomCamChange(ConVar convar, char[] oldValue, char[] newValue)
-{
-	useCustomCamModel = convar.BoolValue;
-}
-
-public void OnUseCustomDroneChange(ConVar convar, char[] oldValue, char[] newValue)
-{
-	useCustomDroneModel = convar.BoolValue;
-}
-
-public void OnDroneHoverHeightChange(ConVar convar, char[] oldValue, char[] newValue)
-{
-	droneHoverHeight = convar.FloatValue;
+	if (convar == cvar_dronespeed)
+		droneSpeed = convar.FloatValue;
+	else if (convar == cvar_dronejump)
+		droneJumpForce = convar.FloatValue;
+	else if (convar == cvar_dronehoverheight)
+		droneHoverHeight = convar.FloatValue;
+	else if (convar == cvar_buytime)
+		SetBuyTime();
+	else if (convar == cvar_use_cam_angles)
+		useCamAngles = convar.BoolValue;
+	else if (convar == cvar_custom_model_drone)
+		useCustomDroneModel = convar.BoolValue;
+	else if (convar == cvar_custom_model_cam)
+		useCustomCamModel = convar.BoolValue;
 }
 
 /**
