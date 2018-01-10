@@ -240,9 +240,9 @@ public void InitVars(bool isNewRound)
 	dronesOwnerList = new ArrayList();
 	camerasProjectiles = new ArrayList();
 	
-	droneSpeed = cvar_dronespeed.FloatValue;
-	droneJumpForce = cvar_dronejump.FloatValue;
-	droneHoverHeight = cvar_dronehoverheight.FloatValue;
+	droneSpeed = cvar_drone_speed.FloatValue;
+	droneJumpForce = cvar_drone_jump.FloatValue;
+	droneHoverHeight = cvar_drone_hoverheight.FloatValue;
 	useCamAngles = cvar_use_cam_angles.BoolValue;
 	useCustomCamModel = cvar_custom_model_cam.BoolValue;
 	useCustomDroneModel = cvar_custom_model_drone.BoolValue;
@@ -577,15 +577,15 @@ public void BuyCamera(int client_index, bool isFree)
 	if (!isFree)
 	{
 		int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
-		if (cvar_camprice.IntValue > money)
+		if (cvar_price_cam.IntValue > money)
 		{
 			PrintHintText(client_index, 
 			"<font color='#ff0000'>Not enough money</font><br>Needed: <font color='#ff0000'>%i</font><br>Have: <font color='#00ff00'>%i</font>", 
-			cvar_camprice.IntValue, money);
+			cvar_price_cam.IntValue, money);
 			EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 			return;
 		}
-		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_camprice.IntValue);
+		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_price_cam.IntValue);
 	}
 	
 	EmitSoundToClient(client_index, getGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
@@ -610,15 +610,15 @@ public void BuyDrone(int client_index, bool isFree)
 	if (!isFree)
 	{
 		int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
-		if (cvar_droneprice.IntValue > money)
+		if (cvar_price_drone.IntValue > money)
 		{
 			PrintHintText(client_index, 
 			"<font color='#ff0000'>Not enough money</font><br>Needed: <font color='#ff0000'>%i</font><br>Have: <font color='#00ff00'>%i</font>", 
-			cvar_droneprice.IntValue, money);
+			cvar_price_drone.IntValue, money);
 			EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 			return;
 		}
-		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_droneprice.IntValue);
+		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_price_drone.IntValue);
 	}
 	EmitSoundToClient(client_index, getGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 	PrintHintText(client_index, "<font color='#0fff00'>You just bought a</font> %s<br>Use <font color='#00ff00'>cd_deploy</font> to deploy it.", droneHTML);
@@ -862,14 +862,14 @@ public void PickupGear(int client_index, int i)
 	{
 		int cam = camerasList.Get(i);
 		GetEntPropVector(cam, Prop_Send, "m_vecOrigin", gearPos);
-		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue)
+		if (GetVectorDistance(pos, gearPos, false) < cvar_pickup_range.FloatValue)
 			PickupCamera(client_index, cam);
 	}
 	else if (IsClientTeamDrones(client_index))
 	{
 		int drone = dronesList.Get(i);
 		GetEntPropVector(drone, Prop_Send, "m_vecOrigin", gearPos);
-		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue)
+		if (GetVectorDistance(pos, gearPos, false) < cvar_pickup_range.FloatValue)
 			PickupDrone(client_index, drone);
 	}
 }
@@ -999,7 +999,7 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			isDroneJumping[client_index] = true;
 			JumpDrone(client_index, activeDrone[client_index][0]);
 			CreateTimer(0.1, Timer_IsJumping, client_index);
-			CreateTimer(cvar_jumpcooldown.FloatValue, Timer_CanJump, client_index);
+			CreateTimer(cvar_jump_cooldown.FloatValue, Timer_CanJump, client_index);
 		}
 		if (buttons & IN_SPEED)
 			isDroneMoving[client_index] = true;
@@ -1340,7 +1340,7 @@ public bool IsClientInGear(int client_index)
 */
 public bool IsClientTeamCameras(int client_index)
 {
-	return playerGearOverride[client_index] != -1 && GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) == cvar_gearteam.IntValue || cvar_gearteam.IntValue == 1) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 1);
+	return playerGearOverride[client_index] != -1 && GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) == cvar_gear_team.IntValue || cvar_gear_team.IntValue == 1) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 1);
 }
 
 /**
@@ -1352,7 +1352,7 @@ public bool IsClientTeamCameras(int client_index)
 */
 public bool IsClientTeamDrones(int client_index)
 {
-	return playerGearOverride[client_index] != -1 && GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) != cvar_gearteam.IntValue || cvar_gearteam.IntValue == 0) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 2);
+	return playerGearOverride[client_index] != -1 && GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) != cvar_gear_team.IntValue || cvar_gear_team.IntValue == 0) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 2);
 }
 
 /**
@@ -1483,11 +1483,11 @@ public void HideHudGuns(int client_index)
 */
 public void OnCvarChange(ConVar convar, char[] oldValue, char[] newValue)
 {
-	if (convar == cvar_dronespeed)
+	if (convar == cvar_drone_speed)
 		droneSpeed = convar.FloatValue;
-	else if (convar == cvar_dronejump)
+	else if (convar == cvar_drone_jump)
 		droneJumpForce = convar.FloatValue;
-	else if (convar == cvar_dronehoverheight)
+	else if (convar == cvar_drone_hoverheight)
 		droneHoverHeight = convar.FloatValue;
 	else if (convar == cvar_buytime)
 		SetBuyTime();
