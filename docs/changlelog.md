@@ -6,6 +6,14 @@ topbar_link : true
 
 # Changelog
 
+* **Version 1.2.0**
+  * Added cd_deploy command to deploy your gear
+  * Changed cd_cam to cd_toggle
+  * Changed some cvar names
+  * Stopped using tactical grenade as gear. Can deploy gear while holding any weapon and using cd_deploy
+  * Added buy time
+  * Can keep gear between rounds
+  * Improved hint texts
 
 * **Version 1.1.7**
   * Improved compatibility with [Tactical Shield](https://keplyx.github.io/TacticalShield/index.html)

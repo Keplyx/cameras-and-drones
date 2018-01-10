@@ -35,11 +35,16 @@
 #include "cameras-and-drones/init.sp"
 
 /*  New in this version
-*	Fixed errors when exiting/entering gear
-*
+*	Added cd_deploy command to deploy your gear
+*	Changed cd_cam to cd_toggle
+*	Changed some cvar names
+*	Stopped using tactical grenade as gear. Can deploy gear while holding any weapon and using cd_deploy
+*	Added buy time
+*	Can keep gear between rounds
+*	Improved hint texts
 */
 
-#define VERSION "1.1.7"
+#define VERSION "1.2.0"
 #define AUTHOR "Keplyx"
 #define PLUGIN_NAME "Cameras and Drones"
 
