@@ -89,18 +89,19 @@ public void RemoveDroneFromList(int drone)
  * @param pos					position of the drone to create.
  * @param rot					rotation of the drone to create.
  */
-public void CreateDrone(int client_index, float pos[3], float rot[3])
+public void CreateDrone(int client_index, float pos[3], float rot[3], float vel[3])
 {
 	// Can be moved, must have a larger hitbox than the drone model (no stuck, easier pickup, easier target)
 	int drone = CreateEntityByName("prop_physics_override"); 
 	if (IsValidEntity(drone)) {
 		SetDronePhysicsModel(drone);
 		DispatchKeyValue(drone, "solid", "6");
+		SetEntProp(drone, Prop_Data, "m_CollisionGroup", 1); // Stop collisions with players
 		//DispatchKeyValue(drone, "overridescript", "mass,100.0,inertia,1.0,damping,1.0,rotdamping ,1.0"); // overwrite params
 		DispatchKeyValue(drone, "overridescript", "rotdamping,1000.0"); // Prevent drone rotation
 		DispatchSpawn(drone);
 		ActivateEntity(drone);
-		TeleportEntity(drone, pos, rot, NULL_VECTOR);
+		TeleportEntity(drone, pos, rot, vel);
 		
 		SDKHook(drone, SDKHook_OnTakeDamage, Hook_TakeDamageGear);
 		SetEntityRenderMode(drone, RENDER_NONE);

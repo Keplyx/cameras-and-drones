@@ -10,12 +10,18 @@ topbar_link : true
 ## ALL
     cd_buy
 
-Buy gear (camera or drone) from your team depending on the cvar. The price can be set up by cvar.
+Buy gear (camera or drone) from your team depending on the cvar. The price can be set up by cvar. You will then be able to deploy it with the next command.
 
 
-    cd_cam
+    cd_deploy
 
-Use the gear from your team. If your gear is a camera, you will be able to see with it. If it  is a drone, you will be able to control it, to move around the map.
+Deploy your gear (camera or drone) by throwing it in front of you. You will then be able to control it with the next commmand.
+
+
+
+    cd_toggle
+
+Use the gear from your team. If your gear is a camera, you will be able to see with it. If it  is a drone, you will be able to control it, to move around the map. Use this command again to exit your gear (or press the crouch key).
 
 
     cd_help

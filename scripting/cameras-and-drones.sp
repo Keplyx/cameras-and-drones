@@ -35,11 +35,16 @@
 #include "cameras-and-drones/init.sp"
 
 /*  New in this version
-*	Fixed errors when exiting/entering gear
-*
+*	Added cd_deploy command to deploy your gear
+*	Changed cd_cam to cd_toggle
+*	Changed some cvar names
+*	Stopped using tactical grenade as gear. Can deploy gear while holding any weapon and using cd_deploy
+*	Added buy time
+*	Can keep gear between rounds
+*	Improved hint texts
 */
 
-#define VERSION "1.1.7"
+#define VERSION "1.2.0"
 #define AUTHOR "Keplyx"
 #define PLUGIN_NAME "Cameras and Drones"
 
@@ -49,12 +54,17 @@
 
 #define customModelsPath "gamedata/cameras-and-drones/custom_models.txt"
 
+#define droneHTML "<font color='#f6c65e'>Drone</font>"
+#define camHTML "<font color='#9e5ef6'>Camera</font>"
+
 bool lateload;
 
 int clientsViewmodels[MAXPLAYERS + 1];
 
-char gearWeapon[] = "weapon_tagrenade";
 char gearOverlay[] = "vgui/screens/vgui_overlay";
+
+char cantBuyGearSound[] = "ui/weapon_cant_buy.wav";
+char getGearSound[] = "items/itempickup.wav";
 
 bool canDisplayThrowWarning[MAXPLAYERS + 1];
 bool canDroneJump[MAXPLAYERS + 1];
@@ -63,10 +73,9 @@ bool isDroneJumping[MAXPLAYERS + 1];
 int collisionOffsets;
 
 int availabletGear[MAXPLAYERS + 1];
-ArrayList gearProjectiles;
-
+bool canBuy[MAXPLAYERS + 1];
 int playerGearOverride[MAXPLAYERS + 1];
-
+float buyTime;
 
 
 /************************************************************************************************************
@@ -94,7 +103,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	AddNormalSoundHook(NormalSoundHook);
 	HookEvent("round_start", Event_RoundStart);
 	HookEvent("player_spawn", Event_PlayerSpawn);
 	AddCommandListener(CommandDrop, "drop");
@@ -105,6 +113,8 @@ public void OnPluginStart()
 	ReadCustomModelsFile();
 	
 	collisionOffsets = FindSendPropInfo("CBaseEntity", "m_CollisionGroup");
+	
+	InitVars(false);
 	
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -154,6 +164,8 @@ public void OnMapStart()
 	PrecacheModel(defaultDronePhysModel, true);
 	PrecacheModel(defaultCamPhysModel, true);
 	
+	PrecacheSound(cantBuyGearSound, true);
+	PrecacheSound(getGearSound, true);
 	PrecacheSound(droneSound, true);
 	PrecacheSound(droneJumpSound, true);
 	PrecacheSound(openDroneSound, true);
@@ -170,7 +182,7 @@ public void OnMapStart()
 public void OnClientPostAdminCheck(int client_index)
 {
 	SDKHook(client_index, SDKHook_WeaponCanUse, Hook_WeaponCanUse);
-	SDKHook(client_index, SDKHook_WeaponSwitch, Hook_WeaponSwitch);
+	SDKHook(client_index, SDKHook_PostThink, Hook_PostThinkPlayer);
 	int ref = EntIndexToEntRef(client_index);
 	CreateTimer(3.0, Timer_WelcomeMessage, ref);
 }
@@ -183,6 +195,8 @@ public void OnClientPostAdminCheck(int client_index)
 public void OnClientDisconnect(int client_index)
 {
 	ResetPlayer(client_index);
+	SDKUnhook(client_index, SDKHook_PostThink, Hook_PostThinkPlayer);
+	SDKUnhook(client_index, SDKHook_WeaponCanUse, Hook_WeaponCanUse);
 }
 
 /**
@@ -214,13 +228,14 @@ public void ResetPlayer(int client_index)
 	canDroneJump[client_index] = true;
 	isDroneJumping[client_index] = false;
 	playerGearOverride[client_index] = 0;
+	canBuy[client_index] = true;
 }
 
 /**
 * Initializes variables with default values.
 *
 */
-public void InitVars()
+public void InitVars(bool isNewRound)
 {
 	camerasList = new ArrayList();
 	camerasModelList = new ArrayList();
@@ -228,17 +243,32 @@ public void InitVars()
 	dronesList = new ArrayList();
 	dronesModelList = new ArrayList();
 	dronesOwnerList = new ArrayList();
-	gearProjectiles = new ArrayList();
+	camerasProjectiles = new ArrayList();
 	
-	droneSpeed = cvar_dronespeed.FloatValue;
-	droneJumpForce = cvar_dronejump.FloatValue;
-	droneHoverHeight = cvar_dronehoverheight.FloatValue;
-	useCamAngles = cvar_usecamangles.BoolValue;
-	useCustomCamModel = cvar_usecustomcam_model.BoolValue;
-	useCustomDroneModel = cvar_usecustomdrone_model.BoolValue;
+	droneSpeed = cvar_drone_speed.FloatValue;
+	droneJumpForce = cvar_drone_jump.FloatValue;
+	droneHoverHeight = cvar_drone_hoverheight.FloatValue;
+	useCamAngles = cvar_use_cam_angles.BoolValue;
+	useCustomCamModel = cvar_custom_model_cam.BoolValue;
+	useCustomDroneModel = cvar_custom_model_drone.BoolValue;
+	SetBuyTime();
 	
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
+		if (isNewRound && cvar_keep_between_rounds.BoolValue)
+		{
+			if (availabletGear[i] <= 0)
+			{
+				availabletGear[i] = 0;
+				playerGearOverride[i] = 0;
+			}
+		}
+		else
+		{
+			availabletGear[i] = 0;
+			playerGearOverride[i] = 0;
+		}
+		
 		for (int j = 0; j < sizeof(activeCam[]); j++)
 		{
 			activeCam[i][j] = -1;
@@ -249,12 +279,43 @@ public void InitVars()
 		}
 		fakePlayersListCamera[i] = -1;
 		fakePlayersListDrones[i] = -1;
-		availabletGear[i] = 0;
 		canDisplayThrowWarning[i] = true;
 		canDroneJump[i] = true;
 		isDroneJumping[i] = false;
-		playerGearOverride[i] = 0;
+		canBuy[i] = true;
 	}
+}
+
+/**
+* Set whether a specific client or every clients can buy gear.
+*
+* @param client_index		Index of the client. -1 for every client.
+* @param state				Whether the client can buy.
+*/
+public void SetBuyState(int client_index, bool state)
+{
+	if (IsValidClient(client_index))
+		canBuy[client_index] = state;
+	else
+	{
+		for (int i = 0; i < sizeof(canBuy); i++)
+		{
+			canBuy[i] = state;
+		}
+	}
+}
+
+/**
+* Set the buy time based on the cvar value.
+*/
+public void SetBuyTime()
+{
+	if (cvar_buytime.IntValue == -1)
+		buyTime = -1.0;
+	else if (cvar_buytime.IntValue == -2)
+		buyTime = FindConVar("mp_buytime").FloatValue;
+	else
+		buyTime = cvar_buytime.FloatValue;
 }
 
 /************************************************************************************************************
@@ -319,13 +380,19 @@ public int Native_IsPlayerInGear(Handle plugin, int numParams)
 */
 public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
 {
-	InitVars();
+	InitVars(true);
 	ResetDronesMenuAll();
 	ResetCamerasMenuAll();
 	for(int i = 0;  i < MAXPLAYERS; i++)
 	{
 		if (IsValidClient(i))
 			CloseGear(i);
+	}
+	if (cvar_buytime_start.IntValue == 0)
+	{
+		SetBuyState(-1, true);
+		if (buyTime >= 0.0)
+			CreateTimer(buyTime, Timer_BuyTime, -1);
 	}
 }
 
@@ -335,120 +402,14 @@ public void Event_RoundStart(Handle event, const char[] name, bool dontBroadcast
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client_index = GetClientOfUserId(GetEventInt(event, "userid"));
+	int ref = EntIndexToEntRef(client_index);
 	clientsViewmodels[client_index] = GetViewModelIndex(client_index);
 	CloseGear(client_index);
-}
-
-/************************************************************************************************************
-*											Detect Gear
-************************************************************************************************************/
-
-/**
-* Hooks tactical grenades spawn.
-*
-* @param entity_index    index of the entity created.
-* @param classname    classname of the entity created.
-*/
-public void OnEntityCreated(int entity_index, const char[] classname)
-{
-	if (StrEqual(classname, "tagrenade_projectile", false))
+	if (cvar_buytime_start.IntValue == 1)
 	{
-		SDKHook(entity_index, SDKHook_Spawn, OnProjectileSpawned);
-	}
-}
-
-/**
-* If the spawned projectile is not being used as a flashing light for cameras
-* and can be used as gear, set its model and hook its touch even.
-*
-* @param entity_index    index of the entity spawned.
-*/
-public void OnProjectileSpawned (int entity_index)
-{
-	// Do not hook flash
-	for (int i = 1; i <= MAXPLAYERS; i++)
-	{
-		if (activeCam[i][2] == entity_index)
-			return;
-	}
-	
-	int owner = GetEntPropEnt(entity_index, Prop_Send, "m_hOwnerEntity");
-	if (IsClientTeamCameras(owner))
-	{
-		if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
-			return;
-		SetCameraPhysicsModel(entity_index);
-	}
-	else if (IsClientTeamDrones(owner))
-	{
-		if (availabletGear[owner] < 1 && cvar_usetagrenade.BoolValue) // Check if player has bought gear. If not, use standart weapon
-			return;
-		SetDronePhysicsModel(entity_index);
-	}
-	gearProjectiles.Push(entity_index);
-	SDKHook(entity_index, SDKHook_StartTouch, StartTouchGrenade);
-}
-
-/**
-* If the touched entity is not a player,
-* create a camera/drone at the touch position.
-*
-* @param entity1    index of the grenade.
-* @param entity2    index of the touched entity.
-*/
-public Action StartTouchGrenade(int entity1, int entity2)
-{
-	if (IsValidEdict(entity1))
-	{
-		float pos[3], rot[3];
-		GetEntPropVector(entity1, Prop_Send, "m_vecOrigin", pos);
-		GetEntPropVector(entity1, Prop_Send, "m_angRotation", rot);
-		int owner = GetEntPropEnt(entity1, Prop_Send, "m_hOwnerEntity");
-		
-		if (IsValidClient(entity2))
-		{
-			PreventGearActivation(owner, entity1);
-			return;
-		}
-		for (int i = 1; i <= MAXPLAYERS; i++)
-		{
-			if (entity2 == fakePlayersListCamera[i] || entity2 == fakePlayersListDrones[i])
-			{
-				PreventGearActivation(owner, entity1);
-				return;
-			}
-		}
-		
-		gearProjectiles.Erase(gearProjectiles.FindValue(entity1));
-		RemoveEdict(entity1);
-		if (IsClientTeamCameras(owner))
-			CreateCamera(owner, pos, rot);
-		else if (IsClientTeamDrones(owner))
-			CreateDrone(owner, pos, rot);
-		availabletGear[owner]--;
-	}
-}
-
-/**
-* Delete the given entity and displays an error message to the given player.
-*
-* @param entity1    index of the entity owner.
-* @param entity2    index of the entity.
-*/
-public void PreventGearActivation(int client_index, int entity_index) // Prevent gear acivation if gear hits player
-{
-	float pos[3];
-	GetEntPropVector(entity_index, Prop_Send, "m_vecOrigin", pos);
-	RemoveEdict(entity_index);
-	if (IsClientTeamCameras(client_index))
-	{
-		EmitSoundToAll(destroyDroneSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
-		PrintHintText(client_index, "<font color='#ff0000' size='25'>Your camera touched a player and was destroyed</font>");
-	}
-	else if (IsClientTeamDrones(client_index))
-	{
-		EmitSoundToAll(destroyCamSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS,  SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, pos);
-		PrintHintText(client_index, "<font color='#ff0000' size='25'>Your drone touched a player and was destroyed</font>");
+		SetBuyState(client_index, true);
+		if (buyTime >= 0.0)
+			CreateTimer(buyTime, Timer_BuyTime, ref);
 	}
 }
 
@@ -475,7 +436,9 @@ public Action ShowHelp(int client_index, int args)
 	PrintToConsole(client_index, "|---- CONSOLE ----|-- IN CHAT --|-- DESCRIPTION --------|");
 	PrintToConsole(client_index, "|cd_buy           |             |Buy team gear          |");
 	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
-	PrintToConsole(client_index, "|cd_cam           |             |Open gear              |");
+	PrintToConsole(client_index, "|cd_deploy        |             |Deploy gear            |");
+	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
+	PrintToConsole(client_index, "|cd_toggle        |             |Toggle gear open/closed|");
 	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
 	PrintToConsole(client_index, "|cd_help          |!cd_help     |Display this help      |");
 	PrintToConsole(client_index, "|-----------------|-------------|-----------------------|");
@@ -490,7 +453,8 @@ public Action ShowHelp(int client_index, int args)
 	PrintToConsole(client_index, "bind 'KEY' 'COMMAND' | This will bind 'COMMAND to 'KEY'");
 	PrintToConsole(client_index, "EXAMPLE:");
 	PrintToConsole(client_index, "bind \"z\" \"cd_buy\" | This will bind the buy command to the <Z> key");
-	PrintToConsole(client_index, "bind \"x\" \"cd_cam\" | This will bind the open command to the <X> key");
+	PrintToConsole(client_index, "bind \"x\" \"cd_deploy\" | This will bind the deploy command to the <X> key");
+	PrintToConsole(client_index, "bind \"c\" \"cd_toggle\" | This will bind the toggle command to the <C> key");
 	
 	CPrintToChat(client_index, "{green}----- CAMERAS AND DRONES HELP -----");
 	CPrintToChat(client_index, "{lime}>>> START");
@@ -609,23 +573,28 @@ public Action BuyGear(int client_index, int args)
 */
 public void BuyCamera(int client_index, bool isFree)
 {
-	if (availabletGear[client_index] >= 1)
+	if (!canBuy[client_index])
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='30'>You already bought a camera</font>");
+		PrintHintText(client_index, "<font color='#ff0000'>Buy time expired</font>");
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		return;
 	}
 	if (!isFree)
 	{
 		int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
-		if (cvar_camprice.IntValue > money)
+		if (cvar_price_cam.IntValue > money)
 		{
-			PrintHintText(client_index, "<font color='#ff0000' size='30'>Not enough money</font>");
+			PrintHintText(client_index, 
+			"<font color='#ff0000'>Not enough money</font><br>Needed: <font color='#ff0000'>%i</font><br>Have: <font color='#00ff00'>%i</font>", 
+			cvar_price_cam.IntValue, money);
+			EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 			return;
 		}
-		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_camprice.IntValue);
+		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_price_cam.IntValue);
 	}
-	GivePlayerItem(client_index, gearWeapon);
-	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a camera</font>");
+	
+	EmitSoundToClient(client_index, getGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
+	PrintHintText(client_index, "<font color='#0fff00'>You just bought a</font> %s<br>Use <font color='#00ff00'>cd_deploy</font> to deploy it.", camHTML);
 	availabletGear[client_index]++;
 }
 
@@ -637,31 +606,77 @@ public void BuyCamera(int client_index, bool isFree)
 */
 public void BuyDrone(int client_index, bool isFree)
 {
-	if (availabletGear[client_index] >= 1)
+	if (!canBuy[client_index])
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='30'>You already bought a drone</font>");
+		PrintHintText(client_index, "<font color='#ff0000'>Buy time expired</font>");
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		return;
 	}
 	if (!isFree)
 	{
 		int money = GetEntProp(client_index, Prop_Send, "m_iAccount");
-		if (cvar_droneprice.IntValue > money)
+		if (cvar_price_drone.IntValue > money)
 		{
-			PrintHintText(client_index, "<font color='#ff0000' size='30'>Not enough money</font>");
+			PrintHintText(client_index, 
+			"<font color='#ff0000'>Not enough money</font><br>Needed: <font color='#ff0000'>%i</font><br>Have: <font color='#00ff00'>%i</font>", 
+			cvar_price_drone.IntValue, money);
+			EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 			return;
 		}
-		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_droneprice.IntValue);
+		SetEntProp(client_index, Prop_Send, "m_iAccount", money - cvar_price_drone.IntValue);
 	}
-	GivePlayerItem(client_index, gearWeapon);
-	PrintHintText(client_index, "<font color='#0fff00' size='25'>You just bought a drone</font>");
+	EmitSoundToClient(client_index, getGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
+	PrintHintText(client_index, "<font color='#0fff00'>You just bought a</font> %s<br>Use <font color='#00ff00'>cd_deploy</font> to deploy it.", droneHTML);
 	availabletGear[client_index]++;
 }
 
 /**
-* Opens the camera or drone depending on the player gear.
+* Deploy the camera or drone depending on the player gear.
 */
-public Action OpenGear(int client_index, int args) //Set player skin if authorized
+public Action DeployGear(int client_index, int args)
 {
+	if (availabletGear[client_index] <= 0)
+	{
+		PrintHintText(client_index, "<font color='#ff0000'>No gear available</font>");
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
+		return Plugin_Handled;
+	}
+	if (!CanThrowGear(client_index))
+	{
+		
+	}
+	float pos[3], rot[3], vel[3];
+	GetClientEyePosition(client_index, pos)
+	GetClientEyeAngles(client_index, rot);
+	GetAngleVectors(rot, vel, NULL_VECTOR, NULL_VECTOR);
+	ScaleVector(vel, 200.0);
+	vel[2] += 50.0;
+	
+	if (IsClientTeamCameras(client_index))
+		CreateCamera(client_index, pos, rot, vel);
+	else if (IsClientTeamDrones(client_index))
+		CreateDrone(client_index, pos, rot, vel);
+	
+	availabletGear[client_index]--;
+	if (IsClientTeamCameras(client_index))
+		PrintHintText(client_index, "%s deployed.<br>Remaining: %i<br>Use <font color='#00ff00'>cd_toggle</font> to use it.", camHTML, availabletGear[client_index]);
+	else if (IsClientTeamDrones(client_index))
+		PrintHintText(client_index, "%s deployed.<br>Remaining: %i<br>Use <font color='#00ff00'>cd_toggle</font> to use it.", droneHTML, availabletGear[client_index]);
+	return Plugin_Handled;
+}
+
+/**
+* Opens the camera or drone depending on the player gear.
+* If the given player is already in gear, close it.
+*/
+public Action ToggleGear(int client_index, int args)
+{
+	if (IsClientInGear(client_index))
+	{
+		CloseGear(client_index);
+		return Plugin_Handled;
+	}
+	
 	if (IsClientTeamCameras(client_index))
 		OpenCamera(client_index);
 	else if (IsClientTeamDrones(client_index))
@@ -673,25 +688,21 @@ public Action OpenGear(int client_index, int args) //Set player skin if authoriz
 /**
 * If the given player is not in the air and at least one camera is available,
 * puts the player in his camera, or in an other one available if the player doesn't have any.
-* If the given player is already in a camera, close it.
 *
 * @param client_index    index of the client.
 */
 public void OpenCamera(int client_index)
 {
-	if (IsClientInCam(client_index))
-	{
-		CloseGear(client_index);
-		return;
-	}
 	if (!(GetEntityFlags(client_index) & FL_ONGROUND))
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='25'>Cannot use cameras while jumping</font>");
+		PrintHintText(client_index, "<font color='#ff0000'>Cannot use %s while jumping</font>", camHTML);
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		return;
 	}
 	if (camerasList.Length == 0)
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='30'>No cameras available</font>");
+		PrintHintText(client_index, "<font color='#ff0000'>No %s available</font>", camHTML);
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		return;
 	}
 	int owner;
@@ -718,25 +729,21 @@ public void OpenCamera(int client_index)
 /**
 * If the given player is not in the air and has at least one drone available,
 * puts the player in one of his drones.
-* If the given player is already in a drone, close it.
 *
 * @param client_index    index of the client.
 */
 public void OpenDrone(int client_index)
 {
-	if (IsClientInDrone(client_index))
-	{
-		CloseGear(client_index);
-		return;
-	}
 	if (!(GetEntityFlags(client_index) & FL_ONGROUND))
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='25'>Cannot use drones while jumping</font>");
+		PrintHintText(client_index, "<font color='#ff0000'>Cannot use %s while jumping</font>", droneHTML);
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		return;
 	}
 	if (dronesList.Length == 0)
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='30'>No drones available</font>");
+		PrintHintText(client_index, "<font color='#ff0000'>No %s available</font>", droneHTML);
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		return;
 	}
 	int owner;
@@ -755,7 +762,8 @@ public void OpenDrone(int client_index)
 	}
 	if (target == -1)
 	{
-		PrintHintText(client_index, "<font color='#ff0000' size='30'>No drones available</font>");
+		PrintHintText(client_index, "<font color='#ff0000'>No %s available</font>", droneHTML);
+		EmitSoundToClient(client_index, cantBuyGearSound, SOUND_FROM_PLAYER, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 		return;
 	}
 	
@@ -805,7 +813,7 @@ public bool CanThrowCamera(int client_index)
 		if (canDisplayThrowWarning[client_index])
 		{
 			canDisplayThrowWarning[client_index] = false;
-			PrintHintText(client_index, "<font color='#ff0000' size='25'>You cannot place any more cameras</font>");
+			PrintHintText(client_index, "<font color='#ff0000'>You cannot place any more</font> %s", camHTML);
 			int ref = EntIndexToEntRef(client_index);
 			CreateTimer(1.0, Timer_DisplayThrowWarning, ref);
 		}
@@ -835,7 +843,7 @@ public bool CanThrowDrone(int client_index)
 		if (canDisplayThrowWarning[client_index])
 		{
 			canDisplayThrowWarning[client_index] = false;
-			PrintHintText(client_index, "<font color='#ff0000' size='25'>You cannot place any more drones</font>");
+			PrintHintText(client_index, "<font color='#ff0000'>You cannot place any more</font> %s", droneHTML);
 			int ref = EntIndexToEntRef(client_index);
 			CreateTimer(1.0, Timer_DisplayThrowWarning, ref);
 		}
@@ -859,17 +867,16 @@ public void PickupGear(int client_index, int i)
 	{
 		int cam = camerasList.Get(i);
 		GetEntPropVector(cam, Prop_Send, "m_vecOrigin", gearPos);
-		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue)
+		if (GetVectorDistance(pos, gearPos, false) < cvar_pickup_range.FloatValue)
 			PickupCamera(client_index, cam);
 	}
 	else if (IsClientTeamDrones(client_index))
 	{
 		int drone = dronesList.Get(i);
 		GetEntPropVector(drone, Prop_Send, "m_vecOrigin", gearPos);
-		if (GetVectorDistance(pos, gearPos, false) < cvar_pickuprange.FloatValue)
+		if (GetVectorDistance(pos, gearPos, false) < cvar_pickup_range.FloatValue)
 			PickupDrone(client_index, drone);
 	}
-	availabletGear[client_index]++;
 }
 
 /**
@@ -881,8 +888,8 @@ public void PickupGear(int client_index, int i)
 public void PickupCamera(int client_index, int cam)
 {
 	DestroyCamera(cam, true);
-	GivePlayerItem(client_index, gearWeapon);
-	PrintHintText(client_index, "<font color='#0fff00' size='25'>Camera recovered</font>");
+	availabletGear[client_index]++;
+	PrintHintText(client_index, "%s recovered<br><font color='#ffffff'>Available gear:</font> <font color='#00ff00'>%i</font>", camHTML, availabletGear[client_index]);
 }
 
 /**
@@ -894,8 +901,8 @@ public void PickupCamera(int client_index, int cam)
 public void PickupDrone(int client_index, int drone)
 {
 	DestroyDrone(drone, true);
-	GivePlayerItem(client_index, gearWeapon);
-	PrintHintText(client_index, "<font color='#0fff00' size='25'>Drone recovered</font>");
+	availabletGear[client_index]++;
+	PrintHintText(client_index, "%s recovered</font><br><font color='#ffffff'>Available gear:</font> <font color='#00ff00'>%i</font>", droneHTML, availabletGear[client_index]);
 }
 
 /**
@@ -978,28 +985,6 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			else if (drone  != -1 && dronesOwnerList.Length > 0 && dronesOwnerList.Get(drone) == client_index)
 				PickupGear(client_index, drone);
 		}
-		if (buttons & IN_ATTACK && (availabletGear[client_index] > 0 || !cvar_usetagrenade.BoolValue)) // Stop player from throwing the gear too far
-		{
-			int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
-			char weapon_name[64];
-			GetEntityClassname(weapon_index, weapon_name, sizeof(weapon_name))
-			if (StrEqual(weapon_name, gearWeapon, false))
-			{
-				buttons &= ~IN_ATTACK;
-				buttons |= IN_ATTACK2;
-			}
-		}
-		if ((buttons & IN_ATTACK2) && !cvar_usetagrenade.BoolValue) // Prevent player from throwing too many gear
-		{
-			int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
-			char weapon_name[64];
-			GetEntityClassname(weapon_index, weapon_name, sizeof(weapon_name))
-			if (StrEqual(weapon_name, gearWeapon, false) && !CanThrowGear(client_index))
-			{
-				float fUnlockTime = GetGameTime() + 1.0;
-				SetEntPropFloat(client_index, Prop_Send, "m_flNextAttack", fUnlockTime);
-			}
-		}
 	}
 	
 	if (IsClientInDrone(client_index)) // Drone specific input
@@ -1019,7 +1004,7 @@ public Action OnPlayerRunCmd(int client_index, int &buttons, int &impulse, float
 			isDroneJumping[client_index] = true;
 			JumpDrone(client_index, activeDrone[client_index][0]);
 			CreateTimer(0.1, Timer_IsJumping, client_index);
-			CreateTimer(cvar_jumpcooldown.FloatValue, Timer_CanJump, client_index);
+			CreateTimer(cvar_jump_cooldown.FloatValue, Timer_CanJump, client_index);
 		}
 		if (buttons & IN_SPEED)
 			isDroneMoving[client_index] = true;
@@ -1087,19 +1072,45 @@ public Action Timer_IsJumping(Handle timer, any ref)
 	}
 }
 
+ /**
+ * Stops players from buying after a time limit.
+ * This limit can be set by cvar.
+ */
+public Action Timer_BuyTime(Handle timer, any ref)
+{
+	int client_index = EntRefToEntIndex(ref);
+	if (IsValidClient(client_index))
+		SetBuyState(client_index, false);
+	else
+		SetBuyState(-1, false);
+}
+
 /************************************************************************************************************
 *											HOOKS
 ************************************************************************************************************/
 
-/**
-* Stops tactical grenade sounds only for cameras and drones.
-*/
-public Action NormalSoundHook(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags)
+public Action Hook_PostThinkPlayer(int client_index)
 {
-	if (IsValidEntity(entity) && gearProjectiles != null && gearProjectiles.FindValue(entity) != -1)
+	if (camerasProjectiles == null || camerasProjectiles.Length == 0 || cvar_cam_box_size.IntValue == 0)
+		return Plugin_Continue;
+	
+	for (int i = 0; i < camerasProjectiles.Length; i++)
 	{
-		if (StrContains(sample, "sensor") != -1)
-			return Plugin_Stop;
+		int cam = camerasProjectiles.Get(i);
+		float x = cvar_cam_box_size.FloatValue / 2.0;
+		float boxMin[3], boxMax[3], pos[3];
+		for (int j = 0; j < sizeof(boxMax); j++)
+		{
+			boxMin[j] = -x;
+			boxMax[j] = x;
+		}
+		GetEntPropVector(cam, Prop_Send, "m_vecOrigin", pos);
+		TR_TraceHullFilter(pos, pos, boxMin, boxMax, MASK_SOLID, TRFilter_NoPlayer, cam);
+		if (TR_DidHit())
+		{
+			SetEntityMoveType(cam, MOVETYPE_NONE)
+			camerasProjectiles.Erase(i);
+		}
 	}
 	return Plugin_Continue;
 }
@@ -1149,20 +1160,6 @@ public Action Hook_WeaponCanUse(int client_index, int weapon_index)
 }
 
 /**
-* If player switches to his gear, display how many he has available.
-*/
-public Action Hook_WeaponSwitch(int client_index, int weapon_index)
-{
-	char name[64];
-	GetEdictClassname(weapon_index, name, sizeof(name));
-	if (StrEqual(name, gearWeapon, false) && availabletGear[client_index] > 0 && cvar_usetagrenade.BoolValue)
-	{
-		PrintHintText(client_index, "Available gear: %i", availabletGear[client_index]);
-	}
-	return Plugin_Continue;
-}
-
-/**
 * Destroy the gear if an enemy or the owner is shooting at it,
 * or if a teammate is shooting at it and tk is enabled (with a cvar).
 */
@@ -1198,19 +1195,13 @@ public Action Hook_TakeDamagePlayer(int victim, int &attacker, int &inflictor, f
 }
 
 /**
-* Stops drop command if the player is in gear and prevents player from dropping his gear weapon.
+* Stops drop command if the player is in gear.
 */
 public Action CommandDrop(int client_index, const char[] command, int argc)
 {
 	if (IsClientInGear(client_index))
 		return Plugin_Handled;
 	
-	int weapon_index = GetEntPropEnt(client_index, Prop_Send, "m_hActiveWeapon");
-	if (IsWeaponGear(weapon_index))
-	{
-		PrintHintText(client_index, "You cannot drop your gear");
-		return Plugin_Handled;
-	}
 	return Plugin_Continue;
 }
 
@@ -1335,19 +1326,6 @@ public void CreateFakePlayer(int client_index, bool isCam)
 ************************************************************************************************************/
 
 /**
-* Returns whether the given weapon is used as gear or not.
-*
-* @param weapon_index		index of the weapon.
-* @return					true if the weapon is used for gear, false otherwise.
-*/
-public bool IsWeaponGear(int weapon_index)
-{
-	char weapon_name[64];
-	GetEntityClassname(weapon_index, weapon_name, sizeof(weapon_name))
-	return StrEqual(weapon_name, gearWeapon, false);
-}
-
-/**
 * Checks whether the given player is using his gear or not.
 *
 * @param client_index		index of the client.
@@ -1367,7 +1345,7 @@ public bool IsClientInGear(int client_index)
 */
 public bool IsClientTeamCameras(int client_index)
 {
-	return playerGearOverride[client_index] != -1 && GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) == cvar_gearteam.IntValue || cvar_gearteam.IntValue == 1) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 1);
+	return playerGearOverride[client_index] != -1 && GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) == cvar_gear_team.IntValue || cvar_gear_team.IntValue == 1) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 1);
 }
 
 /**
@@ -1379,7 +1357,7 @@ public bool IsClientTeamCameras(int client_index)
 */
 public bool IsClientTeamDrones(int client_index)
 {
-	return playerGearOverride[client_index] != -1 && GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) != cvar_gearteam.IntValue || cvar_gearteam.IntValue == 0) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 2);
+	return playerGearOverride[client_index] != -1 && GetClientTeam(client_index) > 1 && (((GetClientTeam(client_index) != cvar_gear_team.IntValue || cvar_gear_team.IntValue == 0) && playerGearOverride[client_index] == 0) || playerGearOverride[client_index] == 2);
 }
 
 /**
@@ -1505,34 +1483,25 @@ public void HideHudGuns(int client_index)
 *											CONVARS
 ************************************************************************************************************/
 
-public void OnDroneSpeedChange(ConVar convar, char[] oldValue, char[] newValue)
+/**
+* Changes the variables associated to the cvars when changed.
+*/
+public void OnCvarChange(ConVar convar, char[] oldValue, char[] newValue)
 {
-	droneSpeed = convar.FloatValue;
-}
-
-public void OnDroneJumpChange(ConVar convar, char[] oldValue, char[] newValue)
-{
-	droneJumpForce = convar.FloatValue;
-}
-
-public void OnUseCamAnglesChange(ConVar convar, char[] oldValue, char[] newValue)
-{
-	useCamAngles = convar.BoolValue;
-}
-
-public void OnUseCustomCamChange(ConVar convar, char[] oldValue, char[] newValue)
-{
-	useCustomCamModel = convar.BoolValue;
-}
-
-public void OnUseCustomDroneChange(ConVar convar, char[] oldValue, char[] newValue)
-{
-	useCustomDroneModel = convar.BoolValue;
-}
-
-public void OnDroneHoverHeightChange(ConVar convar, char[] oldValue, char[] newValue)
-{
-	droneHoverHeight = convar.FloatValue;
+	if (convar == cvar_drone_speed)
+		droneSpeed = convar.FloatValue;
+	else if (convar == cvar_drone_jump)
+		droneJumpForce = convar.FloatValue;
+	else if (convar == cvar_drone_hoverheight)
+		droneHoverHeight = convar.FloatValue;
+	else if (convar == cvar_buytime)
+		SetBuyTime();
+	else if (convar == cvar_use_cam_angles)
+		useCamAngles = convar.BoolValue;
+	else if (convar == cvar_custom_model_drone)
+		useCustomDroneModel = convar.BoolValue;
+	else if (convar == cvar_custom_model_cam)
+		useCustomCamModel = convar.BoolValue;
 }
 
 /**
