@@ -52,7 +52,7 @@
 #define FFADE_STAYOUT       0x0008        // ignores the duration, stays faded out until new ScreenFade message received
 #define FFADE_PURGE         0x0010        // Purges all other fades, replacing them with this one
 
-#define customModelsPath "gamedata/cameras-and-drones/custom_models.txt"
+#define customModelsPath "configs/cameras-and-drones_models.cfg"
 
 #define droneHTML "<font color='#f6c65e'>Drone</font>"
 #define camHTML "<font color='#9e5ef6'>Camera</font>"
@@ -1511,7 +1511,7 @@ public void OnCvarChange(ConVar convar, char[] oldValue, char[] newValue)
 */
 public void ReadCustomModelsFile()
 {
-	char path[PLATFORM_MAX_PATH], line[PLATFORM_MAX_PATH];
+	char path[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, path, sizeof(path), "%s", customModelsPath);
 	if (!FileExists(path))
 	{
@@ -1522,103 +1522,78 @@ public void ReadCustomModelsFile()
 		PrintToServer("Could not find custom models file. Falling back to default");
 		return;
 	}
-	File file = OpenFile(path, "r");
-	while (file.ReadLine(line, sizeof(line)))
-	{
-		if (StrContains(line, "//", false) == 0)
-			continue;
-		
-		if (StrContains(line, "cammodel=", false) == 0)
-			ReadModel(line, "cammodel=", 0)
-		if (StrContains(line, "camphys=", false) == 0)
-			ReadModel(line, "camphys=", 1)
-		else if (StrContains(line, "dronemodel=", false) == 0)
-			ReadModel(line, "dronemodel=", 2)
-		else if (StrContains(line, "dronephys=", false) == 0)
-			ReadModel(line, "dronephys=", 3)
-		else if (StrContains(line, "camrot{", false) == 0)
-			SetCustomRotation(file, false);
-		else if (StrContains(line, "dronerot{", false) == 0)
-			SetCustomRotation(file, true);
-		
-		if (file.EndOfFile())
-			break;
-	}
-	CloseHandle(file);
+	KeyValues kv = new KeyValues("models");
+	kv.ImportFromFile(path);
+	BrowseKeyValues(kv, "", false);
+	delete kv;
 }
 
-/**
-* Reads the given line and extracts the model name.
-* If the model name is valid, sets the associated custom model variable.
-*
-* @param line				line to extract the model name from.
-* @param trigger			trigger name used for this model.
-* @param type				model type. 0 = camera model ; 1 = camera physics model ; 2 = drone model ; 3 = drone physics model.
-*/
-public void ReadModel(char line[PLATFORM_MAX_PATH], char[] trigger, int type)
+public void BrowseKeyValues(KeyValues kv, char parent[32], bool isDrone)
 {
-	ReplaceString(line, sizeof(line), trigger, "", false);
-	ReplaceString(line, sizeof(line), "\n", "", false);
-	if (TryPrecacheCamModel(line))
+	do
 	{
-		switch (type)
+		// You can read the section/key name by using kv.GetSectionName here.
+		char sectionName[32];
+		kv.GetSectionName(sectionName, sizeof(sectionName));
+		if (kv.GotoFirstSubKey(false))
 		{
-			case 0: Format(customCamModel, sizeof(customCamModel), "%s", line);
-			case 1: Format(customCamPhysModel, sizeof(customCamPhysModel), "%s", line);
-			case 2: Format(customDroneModel, sizeof(customDroneModel), "%s", line);
-			case 3: Format(customDronePhysModel, sizeof(customDronePhysModel), "%s", line);
-		}
-	}
-	else
-	{
-		switch (type)
-		{
-			case 0: customCamModel = "";
-			case 1: customCamPhysModel = "";
-			case 2: customDroneModel = "";
-			case 3: customDronePhysModel = "";
-		}
-	}
-}
-
-/**
-* Reads the given file and extracts the custom rotation parameters.
-*
-* @param file				file to extract the rotation parameters from.
-* @param isDrone			whether the parameters are for a drone or a camera.
-*/
-public void SetCustomRotation(File file, bool isDrone)
-{
-	char line[512];
-	while (file.ReadLine(line, sizeof(line)))
-	{
-		int i = 0;
-		if (StrContains(line, "x=", false) == 0)
-			ReplaceString(line, sizeof(line), "x=", "", false);
-		else if (StrContains(line, "y=", false) == 0)
-		{
-			ReplaceString(line, sizeof(line), "y=", "", false);
-			i = 1;
-		}
-		else if (StrContains(line, "z=", false) == 0)
-		{
-			ReplaceString(line, sizeof(line), "z=", "", false);
-			i = 2;
-		}
-		else if (StrContains(line, "}", false) == 0)
-			return;
-		ReplaceString(line, sizeof(line), "\n", "", false);
-		if (isDrone)
-		{
-			customDroneModelRot[i] = StringToFloat(line);
-			PrintToServer("Drone rotation: %i: %f", i, customDroneModelRot[i]);
+			// Current key is a section. Browse it recursively.
+			isDrone = StrEqual(parent, "drone", false) || StrEqual(sectionName, "drone", false);
+			BrowseKeyValues(kv, sectionName, isDrone);
+			kv.GoBack();
 		}
 		else
 		{
-			customCamModelRot[i] = StringToFloat(line);
-			PrintToServer("Camera rotation: %i: %f", i, customCamModelRot[i]);
+			// Current key is a regular key, or an empty section.
+			if (kv.GetDataType(NULL_STRING) != KvData_None)
+			{
+				// Read value of key here (use NULL_STRING as key name). You can
+				// also get the key name by using kv.GetSectionName here.
+				
+				char val[128];
+				kv.GetString(NULL_STRING, val, sizeof(val), "");
+				if (!StrEqual(val, ""))
+				{
+					if (StrEqual(sectionName, "physics_model"))
+					{
+						if (isDrone && TryPrecacheCamModel(val))
+							Format(customDronePhysModel, sizeof(customDronePhysModel), "%s", val);
+						else
+							Format(customCamPhysModel, sizeof(customCamPhysModel), "%s", val);
+					}
+					if (StrEqual(sectionName, "model"))
+					{
+						if (isDrone && TryPrecacheCamModel(val))
+							Format(customDroneModel, sizeof(customDroneModel), "%s", val);
+						else
+							Format(customCamModel, sizeof(customCamModel), "%s", val);
+					}
+					if (StrEqual(sectionName, "x"))
+					{
+						if (isDrone)
+							customDroneModelRot[0] = StringToFloat(val);
+						else
+							customCamModelRot[0] = StringToFloat(val);
+					}
+					if (StrEqual(sectionName, "y"))
+					{
+						if (isDrone)
+							customDroneModelRot[1] = StringToFloat(val);
+						else
+							customCamModelRot[1] = StringToFloat(val);
+					}
+					if (StrEqual(sectionName, "z"))
+					{
+						if (isDrone)
+							customDroneModelRot[2] = StringToFloat(val);
+						else
+							customCamModelRot[2] = StringToFloat(val);
+					}
+				}
+
+			}
 		}
-	}
+	} while (kv.GotoNextKey(false));
 }
 
 /**
